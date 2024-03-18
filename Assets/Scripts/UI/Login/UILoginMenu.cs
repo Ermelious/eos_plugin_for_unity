@@ -44,6 +44,9 @@ using PlayEveryWare.EpicOnlineServices;
 
 namespace PlayEveryWare.EpicOnlineServices.Samples
 {
+    using Epic.OnlineServices.Connect;
+    using LoginCallbackInfo = Epic.OnlineServices.Auth.LoginCallbackInfo;
+
     public class UILoginMenu : MonoBehaviour
     {
         [Header("Authentication UI")]
@@ -210,7 +213,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         public void Start()
         {
             _OriginalloginButtonText = loginButtonText.text;
-            InitConnectDropdown();
+            SetLoginOptionsDropdown();
             ConfigureUIForLogin();
 
             system = EventSystem.current;
@@ -353,7 +356,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             signInWithAppleManager?.Update();
         }
 #else
-
         public void Update()
         {
             // Prevent Deselection
@@ -485,6 +487,8 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
             return currentTop;
         }
+
+        #region Functions to Configure The UI for different types of authentication.
 
         private void ConfigureUIForDevAuthLogin()
         {
@@ -669,7 +673,9 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             tokenText.gameObject.SetActive(false);
             removePersistentTokenButton.gameObject.SetActive(false);
 
-            switch (connectType)// might need to check this better, use ifdefs to turn on platform specific cases that switch off the login button
+            // NOTE: Might need to check this better. Currently, using ifdefs to turn on or off platform
+            //       specific cases that determine whether or not the login button is enabled.
+            switch (connectType)
             {
 
                 //case ExternalCredentialType.GogSessionTicket:
@@ -768,40 +774,11 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             
         }
 
-        private void InitConnectDropdown()
-        {
-            List<Dropdown.OptionData> connectOptions = new List<Dropdown.OptionData>();
-
-            List<ExternalCredentialType> credentialTypes = new List<ExternalCredentialType>
-            {//include all implemented ones here, so users can see all options across platforms (use the configure connect method to turn off access in bad cases)
-                ExternalCredentialType.DeviceidAccessToken,
-                ExternalCredentialType.AppleIdToken,
-                //ExternalCredentialType.GogSessionTicket,
-                //ExternalCredentialType.GoogleIdToken,
-                ExternalCredentialType.OculusUseridNonce,
-                //ExternalCredentialType.ItchioJwt,
-                //ExternalCredentialType.ItchioKey,
-                //ExternalCredentialType.AmazonAccessToken
-                ExternalCredentialType.SteamSessionTicket,
-                ExternalCredentialType.SteamAppTicket,
-                ExternalCredentialType.DiscordAccessToken,
-                ExternalCredentialType.OpenidAccessToken,
-            };
-
-            foreach (ExternalCredentialType type in credentialTypes)
-            {
-                connectOptions.Add(new Dropdown.OptionData() { text = type.ToString() });
-            }
-
-            connectTypeDropdown.options = connectOptions;
-        }
+        #endregion
 
         private void ConfigureUIForLogin()
         {
-            if (OnLogout != null)
-            {
-                OnLogout.Invoke();
-            }
+            OnLogout?.Invoke();
 
             SceneSwitcherDropDown.gameObject.SetActive(true);
             DemoTitle.gameObject.SetActive(true);
@@ -859,10 +836,39 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             tokenInputField.gameObject.SetActive(false);
             connectTypeContainer.gameObject.SetActive(false);
 
-            if (OnLogin != null)
+            OnLogin?.Invoke();
+        }
+
+
+        private void SetLoginOptionsDropdown()
+        {
+            List<Dropdown.OptionData> connectOptions = new();
+
+            // NOTE: All implemented types of login types are listed here, so that
+            //       users can see options across all platforms. Use the configure
+            //       connect method to turn off access where necessary.
+            List<ExternalCredentialType> credentialTypes = new()
             {
-                OnLogin.Invoke();
+                ExternalCredentialType.DeviceidAccessToken,
+                ExternalCredentialType.AppleIdToken,
+                //ExternalCredentialType.GogSessionTicket,
+                //ExternalCredentialType.GoogleIdToken,
+                ExternalCredentialType.OculusUseridNonce,
+                //ExternalCredentialType.ItchioJwt,
+                //ExternalCredentialType.ItchioKey,
+                //ExternalCredentialType.AmazonAccessToken
+                ExternalCredentialType.SteamSessionTicket,
+                ExternalCredentialType.SteamAppTicket,
+                ExternalCredentialType.DiscordAccessToken,
+                ExternalCredentialType.OpenidAccessToken,
+            };
+
+            foreach (ExternalCredentialType type in credentialTypes)
+            {
+                connectOptions.Add(new Dropdown.OptionData() { text = type.ToString() });
             }
+
+            connectTypeDropdown.options = connectOptions;
         }
 
         public void OnLogoutButtonClick()
@@ -896,18 +902,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 }
 
             });
-        }
-
-        // For now, the only supported login type that requires a 'username' is the dev auth one
-        bool SelectedLoginTypeRequiresUsername()
-        {
-            return loginType == LoginCredentialType.Developer;
-        }
-
-        // For now, the only supported login type that requires a 'password' is the dev auth one
-        bool SelectedLoginTypeRequiresPassword()
-        {
-            return loginType == LoginCredentialType.Developer;
         }
 
         private IEnumerator TurnButtonOnAfter15Sec()
@@ -957,33 +951,13 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 return;
             }
 
-            string usernameAsString = idInputField.InputField.text.Trim();
-            string passwordAsString = tokenInputField.InputField.text.Trim();
-
-            if (SelectedLoginTypeRequiresUsername() && usernameAsString.Length <= 0)
-            {
-                print("Username is missing.");
-                return;
-            }
-
-            if (SelectedLoginTypeRequiresPassword() && passwordAsString.Length <= 0)
-            {
-                print("Password is missing.");
-                return;
-            }
-
+            
             loginButton.enabled = false;
             if(PreventLogIn!=null)
                 StopCoroutine(PreventLogIn);
             PreventLogIn = StartCoroutine(TurnButtonOnAfter15Sec());
-            //usernameInputField.enabled = false;
-            //passwordInputField.enabled = false;
-            print("Attempting to login...");
 
-            // Disabled at the moment to work around a crash that happens
-            //LoggingInterface.SetCallback((LogMessage logMessage) =>{
-            //    print(logMessage.Message);
-            //});
+            print("Attempting to login...");
 
             if (loginType == connect)
             {
@@ -1051,13 +1025,28 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                                                                        EOSManager.Instance.GetCommandLineArgsFromEpicLauncher().authPassword,
                                                                        StartLoginWithLoginTypeAndTokenCallback);
             }
-            else
+            else if (loginType == LoginCredentialType.Developer)
             {
+                string usernameAsString = idInputField.InputField.text.Trim();
+                string passwordAsString = tokenInputField.InputField.text.Trim();
+
+                if (string.IsNullOrEmpty(usernameAsString))
+                {
+                    print("Username is missing");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(passwordAsString))
+                {
+                    print("Password is missing.");
+                    return;
+                }
+
                 // Deal with other EOS log in issues
                 EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
-                                                                        usernameAsString,
-                                                                        passwordAsString,
-                                                                        StartLoginWithLoginTypeAndTokenCallback);
+                    usernameAsString,
+                    passwordAsString,
+                    StartLoginWithLoginTypeAndTokenCallback);
             }
         }
 
@@ -1127,22 +1116,21 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 DeviceModel = SystemInfo.deviceModel
             };
 
-            connectInterface.CreateDeviceId(ref options, null, CreateDeviceCallback);
-        }
-
-        private void CreateDeviceCallback(ref Epic.OnlineServices.Connect.CreateDeviceIdCallbackInfo callbackInfo)
-        {
-            if (callbackInfo.ResultCode == Result.Success || callbackInfo.ResultCode == Result.DuplicateNotAllowed)
+            //connectInterface.CreateDeviceId(ref options, null, CreateDeviceCallback);
+            connectInterface.CreateDeviceId(ref options, null, (ref CreateDeviceIdCallbackInfo callbackInfo) =>
             {
-                //this may return "Unknown" on some platforms
-                string displayName = Environment.UserName;
-                EOSManager.Instance.StartConnectLoginWithOptions(ExternalCredentialType.DeviceidAccessToken, null, displayName, ConnectLoginTokenCallback);
-            }
-            else
-            {
-                Debug.LogError("Connect Login failed: Failed to create Device Id");
-                ConfigureUIForLogin();
-            }
+                if (callbackInfo.ResultCode == Result.Success || callbackInfo.ResultCode == Result.DuplicateNotAllowed)
+                {
+                    //this may return "Unknown" on some platforms
+                    string displayName = Environment.UserName;
+                    EOSManager.Instance.StartConnectLoginWithOptions(ExternalCredentialType.DeviceidAccessToken, null, displayName, ConnectLoginTokenCallback);
+                }
+                else
+                {
+                    Debug.LogError("Connect Login failed: Failed to create Device Id");
+                    ConfigureUIForLogin();
+                }
+            });
         }
 
         private void ConnectAppleId()
@@ -1165,20 +1153,21 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 return;
             }
 
-            Discord.DiscordManager.Instance.RequestOAuth2Token(OnDiscordAuthReceived);
-        }
-
-        private void OnDiscordAuthReceived(string token)
-        {
-            if (token == null)
+            Discord.DiscordManager.Instance.RequestOAuth2Token((token) =>
             {
-                Debug.LogError("Connect Login failed: Unable to get Discord OAuth2 token");
-                ConfigureUIForLogin();
-            }
-            else
-            {
-                EOSManager.Instance.StartConnectLoginWithOptions(ExternalCredentialType.DiscordAccessToken, token, onloginCallback: ConnectLoginTokenCallback);
-            }
+                if (token == null)
+                {
+                    Debug.LogError("Connect Login failed: Unable to get Discord OAuth2 token");
+                    ConfigureUIForLogin();
+                }
+                else
+                {
+                    EOSManager.Instance.StartConnectLoginWithOptions(
+                        ExternalCredentialType.DiscordAccessToken, 
+                        token, 
+                        onloginCallback: ConnectLoginTokenCallback);
+                }
+            });
         }
 
         private void ConnectOpenId()
@@ -1190,27 +1179,29 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 string password = tokenParts[1].Trim();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
-                    OpenId.OpenIdRequestManager.Instance.RequestToken(username, password, OnOpenIdTokenReceived);
+                    OpenId.OpenIdRequestManager.Instance.RequestToken(username, password, 
+                        (callbackUsername, callbackToken) =>
+                    {
+                        if (null == callbackToken)
+                        {
+                            Debug.LogError("Connect Login filed: Unable to acquire OpenID token.");
+                            ConfigureUIForLogin();
+                        }
+                        else
+                        {
+                            EOSManager.Instance.StartConnectLoginWithOptions(
+                                ExternalCredentialType.OpenidAccessToken, 
+                                callbackToken, 
+                                onloginCallback: ConnectLoginTokenCallback
+                            );
+                        }
+                    });
                     return;
                 }
             }
 
             Debug.LogError("Connect Login failed: OpenID credentials should be entered as \"username:password\"");
             ConfigureUIForLogin();
-        }
-
-        private void OnOpenIdTokenReceived(string username, string token)
-        {
-            if (token == null)
-            {
-                Debug.LogError("Connect Login failed: Unable to acquire OpenID token");
-                ConfigureUIForLogin();
-            }
-            else
-            {
-                EOSManager.Instance.StartConnectLoginWithOptions(ExternalCredentialType.OpenidAccessToken, token, onloginCallback: ConnectLoginTokenCallback);
-            }
-
         }
 
         private void ConnectOculus()
@@ -1222,20 +1213,21 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 return;
             }
 
-            Oculus.OculusManager.Instance.GetUserProof(OnOculusProofReceived);
-        }
-
-        private void OnOculusProofReceived(string idAndNonce, string OculusID)
-        {
-            if (string.IsNullOrEmpty(idAndNonce) || string.IsNullOrEmpty(OculusID))
+            Oculus.OculusManager.Instance.GetUserProof((idAndNonce, OculusID) =>
             {
-                Debug.LogError("Connect Login failed: Unable to get Oculus Proof. Is Oculus setup and available for this platform?");
-                ConfigureUIForLogin();
-            }
-            else
-            {
-                StartConnectLoginWithToken(ExternalCredentialType.OculusUseridNonce, idAndNonce, OculusID);
-            }
+                if (string.IsNullOrEmpty(idAndNonce) || string.IsNullOrEmpty(OculusID))
+                {
+                    Debug.LogError("Connect Login failed: Unable to get Oculus Proof. Is Oculus setup and available for this platform?");
+                    ConfigureUIForLogin();
+                }
+                else
+                {
+                    StartConnectLoginWithToken(
+                        ExternalCredentialType.OculusUseridNonce,
+                        idAndNonce, 
+                        OculusID);
+                }
+            });
         }
 
         private void StartConnectLoginWithToken(ExternalCredentialType externalType, string token, string displayName = null)
@@ -1253,7 +1245,9 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             else if (connectLoginCallbackInfo.ResultCode == Result.InvalidUser)
             {
                 // ask user if they want to connect; sample assumes they do
-                EOSManager.Instance.CreateConnectUserWithContinuanceToken(connectLoginCallbackInfo.ContinuanceToken, (Epic.OnlineServices.Connect.CreateUserCallbackInfo createUserCallbackInfo) =>
+                EOSManager.Instance.CreateConnectUserWithContinuanceToken(
+                    connectLoginCallbackInfo.ContinuanceToken, 
+                    createUserCallbackInfo =>
                 {
                     print("Creating new connect user");
                     if (createUserCallbackInfo.ResultCode == Result.Success)
