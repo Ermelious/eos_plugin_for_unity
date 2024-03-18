@@ -45,6 +45,7 @@ using PlayEveryWare.EpicOnlineServices;
 namespace PlayEveryWare.EpicOnlineServices.Samples
 {
     using Epic.OnlineServices.Connect;
+    using System.Linq;
     using LoginCallbackInfo = Epic.OnlineServices.Auth.LoginCallbackInfo;
 
     public class UILoginMenu : MonoBehaviour
@@ -79,15 +80,16 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         public GameObject UIFirstSelected;
         public GameObject UIFindSelectable;
 
-        private EventSystem system;
-        private GameObject selectedGameObject;
+        // NOTE:  Use to indicate Connect login instead of Auth (note that
+        //        "Connect" is not a valid value within the enum
+        //        "LoginCredentialType."
+        private const LoginCredentialType ConnectType = (LoginCredentialType)(-1);
 
-        //use to indicate Connect login instead of Auth
-        private const LoginCredentialType connect = (LoginCredentialType)(-1);
         private LoginCredentialType loginType = LoginCredentialType.Developer;
-        //default to invalid value
-        private const ExternalCredentialType invalidConnectType = (ExternalCredentialType)(-1);
-        private ExternalCredentialType connectType = invalidConnectType;
+        
+        // NOTE: Use to indicate an invalid external credential type
+        private const ExternalCredentialType invalidCredentialType = (ExternalCredentialType)(-1);
+        private ExternalCredentialType externalCredentialType = invalidCredentialType;
 
         Apple.EOSSignInWithAppleManager signInWithAppleManager = null;
 
@@ -95,31 +97,41 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         public static string IdGlobalCache = string.Empty;
         public static string TokenGlobalCache = string.Empty;
 
-#if UNITY_PS4
-        //private bool socialOverlayActivated = false;
-#endif
-
         private void Awake()
         {
             idInputField.InputField.onEndEdit.AddListener(CacheIdInputField);
             tokenInputField.InputField.onEndEdit.AddListener(CacheTokenField);
-#if UNITY_EDITOR
-            loginType = LoginCredentialType.AccountPortal; // Default in editor
-#elif UNITY_SWITCH
-            loginType = LoginCredentialType.PersistentAuth; // Default on switch
-#elif UNITY_PS4 || UNITY_PS5 || UNITY_GAMECORE
-            loginType = LoginCredentialType.ExternalAuth; // Default on other consoles
-#else
-            loginType = LoginCredentialType.AccountPortal; // Default on other platforms
-#endif
 
-        // TODO: This will fail on anything that is mac, windows, or linux, or is an editor version of any of the above
+            SetDefaultLoginType(ref loginType);
+
+            // TODO: This will fail on anything that is mac, windows, or linux, or is an editor version of any of the above
 #if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX
             idInputField.InputField.text = "localhost:7777"; //default on pc
 #endif
 
+            CheckInputSystem();
+        }
+
+        /// <summary>
+        /// Checks the input system, and logs an error if there is a problem with the configuration.
+        /// </summary>
+        private static void CheckInputSystem()
+        {
 #if !ENABLE_INPUT_SYSTEM && (UNITY_XBOXONE || UNITY_GAMECORE_XBOXONE || UNITY_GAMECORE_SCARLETT || UNITY_PS4 || UNITY_PS5 || UNITY_SWITCH)
             Debug.LogError("Input currently handled by Input Manager. Input System Package is required for controller support on consoles.");
+#endif
+        }
+
+        private static void SetDefaultLoginType(ref LoginCredentialType type)
+        {
+#if UNITY_EDITOR
+            type = LoginCredentialType.AccountPortal;  // Default in editor
+#elif UNITY_SWITCH
+            type = LoginCredentialType.PersistentAuth; // Default for Switch
+#elif UNITY_PS4 || UNITY_PS5 || UNITY_GAMECORE
+            type = LoginCredentialType.ExternalAuth;   // Default for PS and Xbox consoles
+#else
+            type = LoginCredentialType.AccountPortal;  // Default on other platforms
 #endif
         }
 
@@ -165,7 +177,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     loginType = LoginCredentialType.ExchangeCode;
                     break;
                 case 5:
-                    loginType = connect;
+                    loginType = ConnectType;
                     break;
                 case 0:
                 default:
@@ -174,13 +186,13 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
             }
 
-            if (loginType == connect)
+            if (loginType == ConnectType)
             {
-                connectType = GetConnectType();
+                externalCredentialType = GetConnectType();
             }
             else
             {
-                connectType = invalidConnectType;
+                externalCredentialType = invalidCredentialType;
             }
 
             ConfigureUIForLogin();
@@ -188,12 +200,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         public void OnConnectDropdownChange()
         {
-            if (loginType != connect)
+            if (loginType != ConnectType)
             {
                 return;
             }
 
-            connectType = GetConnectType();
+            externalCredentialType = GetConnectType();
             ConfigureUIForLogin();
         }
 
@@ -206,7 +218,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             }
             else
             {
-                return invalidConnectType;
+                return invalidCredentialType;
             }
         }
 
@@ -215,8 +227,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             _OriginalloginButtonText = loginButtonText.text;
             SetLoginOptionsDropdown();
             ConfigureUIForLogin();
-
-            system = EventSystem.current;
         }
 
         private void EnterPressedToLogin()
@@ -230,23 +240,25 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 #if ENABLE_INPUT_SYSTEM
         public void Update()
         {
+            EventSystem system = EventSystem.current;
+
             var keyboard = Keyboard.current;
 
-            if (system.currentSelectedGameObject != null && system.currentSelectedGameObject != selectedGameObject)
+            if (system.currentSelectedGameObject != null && system.currentSelectedGameObject != lastSelectedGameObject)
             {
-                selectedGameObject = system.currentSelectedGameObject;
+                lastSelectedGameObject = system.currentSelectedGameObject;
             }
 
             // Prevent deselection by either reselecting the previously selected or the first selected in EventSystem
             if (system.currentSelectedGameObject == null || system.currentSelectedGameObject?.activeInHierarchy == false)
             {
                 // Make sure the selected object is still visible. If it's hidden, then don't select an invisible object.
-                if (selectedGameObject == null || selectedGameObject?.activeInHierarchy == false)
+                if (lastSelectedGameObject == null || lastSelectedGameObject?.activeInHierarchy == false)
                 {
-                    selectedGameObject = system.firstSelectedGameObject;
+                    lastSelectedGameObject = system.firstSelectedGameObject;
                 }
 
-                system.SetSelectedGameObject(selectedGameObject);
+                system.SetSelectedGameObject(lastSelectedGameObject);
             }
 
             // Disable game input if Overlay is visible and has exclusive input
@@ -356,137 +368,174 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             signInWithAppleManager?.Update();
         }
 #else
-        public void Update()
+
+        /// <summary>
+        /// Stores a reference to the last game object that was selected.
+        /// </summary>
+        private GameObject lastSelectedGameObject = null;
+
+        /// <summary>
+        /// If no GameObject is selected, but one was selected before - then determines if the
+        /// de-selected GameObject should actually still be detected. If so, brings focus back
+        /// to the previously selected game object. If not, then the first selected GameObject
+        /// is focused. Broadly speaking, this prevents a focus state wherein no GameObject has
+        /// focus.
+        /// </summary>
+        /// <param name="previouslySelectedGameObject">Reference to the GameObject that had focus on the last update.</param>
+        private static void PreventDeselection(ref GameObject previouslySelectedGameObject)
         {
             // Prevent Deselection
-            if (system.currentSelectedGameObject != null && system.currentSelectedGameObject != selectedGameObject)
+            if (EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject != previouslySelectedGameObject)
             {
-                selectedGameObject = system.currentSelectedGameObject;
+                previouslySelectedGameObject = EventSystem.current.currentSelectedGameObject;
             }
-            else if (system.currentSelectedGameObject == null || system.currentSelectedGameObject?.activeInHierarchy == false)
+            else if (EventSystem.current.currentSelectedGameObject == null || EventSystem.current.currentSelectedGameObject.activeInHierarchy == false)
             {
-                // Make sure the selected object is still visible. If it's hidden, then don't select an invisible object.
-                if (selectedGameObject == null || selectedGameObject?.activeInHierarchy == false)
+                // If there is no selected object, or if the currently selected object is not visible.
+                if (previouslySelectedGameObject == null || previouslySelectedGameObject.activeInHierarchy == false)
                 {
-                    selectedGameObject = system.firstSelectedGameObject;
+                    // Then set the currently selected object to be the first selected game object.
+                    previouslySelectedGameObject = EventSystem.current.firstSelectedGameObject;
                 }
 
-                system.SetSelectedGameObject(selectedGameObject);
+                EventSystem.current.SetSelectedGameObject(previouslySelectedGameObject);
             }
+        }
 
+        /// <summary>
+        /// Determines whether input should be passed to the scene, or if it should be skipped.
+        /// This is in-order to prevent input from being handled when the EOS overlay is active.
+        /// </summary>
+        /// <returns>True if input should be handled, false if not.</returns>
+        private static bool ShouldInputBeHandled()
+        {
 #if UNITY_PS4 || UNITY_PS5
-            /* // Overlay handles 'R3', input is always sent
-            if (Input.GetButtonDown("R3"))
-            {
-                Debug.Log("UILoginMenu (Update): R3 pressed, socialOverlayActivated=" + socialOverlayActivated);
-                if(socialOverlayActivated)
-                {
-                    // Show overlay
-                    EOSManager.Instance.GetOrCreateManager<EOSFriendsManager>().ShowFriendsOverlay(null);
-                }
-                else
-                {
-                    // Hide Overlay
-                    EOSManager.Instance.GetOrCreateManager<EOSFriendsManager>().HideFriendsOverlay(null);
-                }
-                socialOverlayActivated = !socialOverlayActivated;
-            }
-            */
-
             // Disable game input if Overlay is visible and has exclusive input
-            if (system != null && system.sendNavigationEvents != !EOSManager.Instance.IsOverlayOpenWithExclusiveInput())
+            if (EventSystem.current != null && EventSystem.current.sendNavigationEvents != !EOSManager.Instance.IsOverlayOpenWithExclusiveInput())
             {
                 if (EOSManager.Instance.IsOverlayOpenWithExclusiveInput())
                 {
                     Debug.LogWarning("UILoginMenu (Update): Game Input (sendNavigationEvents) Disabled.");
-                    system.sendNavigationEvents = false;
-                    return;
+                    EventSystem.current.sendNavigationEvents = false;
+                    return false;
                 }
                 else
                 {
                     Debug.Log("UILoginMenu (Update): Game Input (sendNavigationEvents) Enabled.");
-                    system.sendNavigationEvents = true;
+                    EventSystem.current.sendNavigationEvents = true;
+                    return true;
                 }
             }
+#else
+            return true;
 #endif
+        }
 
-            // Controller: Detect if nothing is selected and controller input detected, and set default
-            bool nothingSelected = system != null && system.currentSelectedGameObject == null;
-            bool inactiveButtonSelected = system != null && system.currentSelectedGameObject != null && !system.currentSelectedGameObject.activeInHierarchy;
+        /// <summary>
+        /// Determines which GameObject should be selected.
+        /// </summary>
+        /// <param name="firstGameObject">Reference to the GameObject that is considered to be the "first" in tab focus order.</param>
+        /// <param name="findSelectable">Reference to the GameObject that can be used to find other selectables if doing so is necessary.</param>
+        private static void SetSelectedGameObject(ref GameObject firstGameObject, ref GameObject findSelectable)
+        {
+            // Determine if nothing is selected
+            bool nothingSelected = EventSystem.current.currentSelectedGameObject == null;
+
+            // Is an inactive button currently selected? (More accurately: Is there a currently selected object, and is that currently selected object invisible?)
+            bool inactiveButtonSelected = EventSystem.current.currentSelectedGameObject != null && !EventSystem.current.currentSelectedGameObject.activeInHierarchy;
 
             if ((nothingSelected || inactiveButtonSelected)
                 && (Input.GetAxis("Horizontal") != 0.0f || Input.GetAxis("Vertical") != 0.0f))
             {
-                if (UIFirstSelected.activeInHierarchy == true)
+                if (firstGameObject.activeInHierarchy)
                 {
-                    system.SetSelectedGameObject(UIFirstSelected);
+                    EventSystem.current.SetSelectedGameObject(firstGameObject);
                 }
-                else if (UIFindSelectable?.activeSelf == true)
+                else if (findSelectable.activeSelf == true)
                 {
-                    system.SetSelectedGameObject(UIFindSelectable);
+                    EventSystem.current.SetSelectedGameObject(findSelectable);
                 }
                 else
                 {
-                    var selectables = GameObject.FindObjectsOfType<Selectable>(false);
-                    foreach (var selectable in selectables)
+                    var nextSelectable = FindObjectsOfType<Selectable>(false)
+                        .FirstOrDefault(s => s.navigation.mode != Navigation.Mode.None);
+                    if (null != nextSelectable)
                     {
-                        if (selectable.navigation.mode != Navigation.Mode.None)
-                        {
-                            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
-                            break;
-                        }
+                        EventSystem.current.SetSelectedGameObject(nextSelectable.gameObject);
                     }
                 }
 
-                Debug.Log("Nothing currently selected, default to UIFirstSelected: system.currentSelectedGameObject = " + system.currentSelectedGameObject);
+                Debug.Log($"Nothing currently selected, default to UIFirstSelected: system.currentSelectedGameObject = \"{EventSystem.current.currentSelectedGameObject}\".");
             }
+        }
 
-            // Tab between input fields
-            if (Input.GetKeyDown(KeyCode.Tab)
-                && system.currentSelectedGameObject != null)
+        private static void SetFocusedGameObject(ref GameObject previouslySelected, ref GameObject firstSelected,
+            ref GameObject findSelectable)
+        {
+            // Prevents game object from being de-selected.
+            PreventDeselection(ref previouslySelected);
+
+            // Determines whether or not to handle the input (typically not if the EOS overlay is active).
+            // If input should not be handled, then the process stops here.
+            if (!ShouldInputBeHandled()) { return; }
+
+            // Determine which object should be selected and make sure that it is.
+            SetSelectedGameObject(ref firstSelected, ref findSelectable);
+
+            // If tab has been pressed, progress the selected control to the next one.
+            HandleTabInput();
+        }
+
+        private static void HandleTabInput()
+        {
+            // Stop handling if Tab is not pressed, or if there is no currently selected game object.
+            if (!Input.GetKeyDown(KeyCode.Tab) || null == EventSystem.current.currentSelectedGameObject)
             {
-                Selectable next = system.currentSelectedGameObject.GetComponent<Selectable>().FindSelectableOnDown();
-
-                InputField inputField = system.currentSelectedGameObject.GetComponent<InputField>();
-
-                if (next != null)
-                {
-                    InputField inputfield = next.GetComponent<InputField>();
-                    if (inputfield != null)
-                    {
-                        inputfield.OnPointerClick(new PointerEventData(system));
-                    }
-
-                    system.SetSelectedGameObject(next.gameObject);
-                }
-                else
-                {
-                    next = FindTopUISelectable();
-                    system.SetSelectedGameObject(next.gameObject);
-                }
+                return;
             }
 
-            signInWithAppleManager?.Update();
+            Selectable next = EventSystem.current.currentSelectedGameObject
+                .GetComponent<Selectable>().FindSelectableOnDown();
+
+            if (next != null)
+            {
+                // If the "next" control getting focus has an input field component.
+                if (next.TryGetComponent<InputField>(out var inputField))
+                {
+                    // Then simulate a pointer click on that component.
+                    inputField.OnPointerClick(new PointerEventData(EventSystem.current));
+                }
+            }
+            else
+            {
+                // Find the navigable selectable with the highest y position (highest on the
+                // screen), and set "next" to that selectable.
+                next = Selectable.allSelectablesArray
+                    .Where(selectable => selectable.navigation.mode != Navigation.Mode.None)
+                    .OrderByDescending(selectable => selectable.transform.position.y)
+                    .FirstOrDefault();
+            }
+
+            // If a "next" control has been found, then set the selected game object to the
+            // game object associated with it.
+            if (next != null)
+            {
+                EventSystem.current.SetSelectedGameObject(next.gameObject);
+            }
+        }
+
+        public void Update()
+        {
+            // Set focus to the appropriate game object.
+            SetFocusedGameObject(ref lastSelectedGameObject, ref UIFirstSelected, ref UIFindSelectable);
+
+            // If the apple sign-in manager exists, then update it as well.
+            if (null != signInWithAppleManager)
+            {
+                signInWithAppleManager.Update();
+            }
         }
 #endif
-
-        private Selectable FindTopUISelectable()
-        {
-            Selectable currentTop = Selectable.allSelectablesArray[0];
-            double currentTopYaxis = currentTop.transform.position.y;
-
-            foreach (Selectable s in Selectable.allSelectablesArray)
-            {
-                if (s.transform.position.y > currentTopYaxis &&
-                    s.navigation.mode != Navigation.Mode.None)
-                {
-                    currentTop = s;
-                    currentTopYaxis = s.transform.position.y;
-                }
-            }
-
-            return currentTop;
-        }
 
         #region Functions to Configure The UI for different types of authentication.
 
@@ -675,7 +724,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
             // NOTE: Might need to check this better. Currently, using ifdefs to turn on or off platform
             //       specific cases that determine whether or not the login button is enabled.
-            switch (connectType)
+            switch (externalCredentialType)
             {
 
                 //case ExternalCredentialType.GogSessionTicket:
@@ -715,7 +764,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
             }
 
-            if (connectType == ExternalCredentialType.OpenidAccessToken)
+            if (externalCredentialType == ExternalCredentialType.OpenidAccessToken)
             {
                 tokenText.text = "Credentials";
                 tokenTooltip.Text = "Credentials for OpenID login sample in the form of username:password";
@@ -806,7 +855,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 case LoginCredentialType.ExchangeCode:
                     ConfigureUIForExchangeCode();
                     break;
-                case connect:
+                case ConnectType:
                     ConfigureUIForConnectLogin();
                     break;
                 case LoginCredentialType.Developer:
@@ -816,7 +865,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             }
 
             // Controller
-            //EventSystem.current.SetSelectedGameObject(null);
             EventSystem.current.SetSelectedGameObject(UIFirstSelected);
         }
 
@@ -839,14 +887,13 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             OnLogin?.Invoke();
         }
 
-
         private void SetLoginOptionsDropdown()
         {
             List<Dropdown.OptionData> connectOptions = new();
 
             // NOTE: All implemented types of login types are listed here, so that
             //       users can see options across all platforms. Use the configure
-            //       connect method to turn off access where necessary.
+            //       ConnectType method to turn off access where necessary.
             List<ExternalCredentialType> credentialTypes = new()
             {
                 ExternalCredentialType.DeviceidAccessToken,
@@ -950,7 +997,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 Debug.LogError("Internet not reachable.");
                 return;
             }
-
             
             loginButton.enabled = false;
             if(PreventLogIn!=null)
@@ -959,12 +1005,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
             print("Attempting to login...");
 
-            if (loginType == connect)
+            switch (loginType)
             {
-                AcquireTokenForConnectLogin(connectType);
-            }
-            else if (loginType == LoginCredentialType.ExternalAuth)
-            {
+                case ConnectType:
+                    AcquireTokenForConnectLogin(externalCredentialType);
+                    break;
+                case LoginCredentialType.ExternalAuth:
 #if (UNITY_PS4 || UNITY_PS5) && !UNITY_EDITOR
 #if UNITY_PS4
                     var psnManager = EOSManager.Instance.GetOrCreateManager<EOSPSNManagerPS4>();
@@ -972,81 +1018,81 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     var psnManager = EOSManager.Instance.GetOrCreateManager<EOSPSNManagerPS5>();
 #endif
 
-                ///TOO(mendsley): Use activating controller index here
-                psnManager.StartLoginWithPSN(0, StartLoginWithLoginTypeAndTokenCallback);
+                    ///TOO(mendsley): Use activating controller index here
+                    psnManager.StartLoginWithPSN(0, StartLoginWithLoginTypeAndTokenCallback);
 #elif UNITY_SWITCH && !UNITY_EDITOR
-                var nintendoManager = EOSManager.Instance.GetOrCreateManager<EOSNintendoManager>();
-                nintendoManager.StartLoginWithNSAPreselectedUser(StartLoginWithLoginTypeAndTokenCallback);
+                    var nintendoManager = EOSManager.Instance.GetOrCreateManager<EOSNintendoManager>();
+                    nintendoManager.StartLoginWithNSAPreselectedUser(StartLoginWithLoginTypeAndTokenCallback);
 #elif UNITY_GAMECORE && !UNITY_EDITOR
-                EOSXBLManager xblManager = EOSManager.Instance.GetOrCreateManager<EOSXBLManager>();
-                xblManager.StartLoginWithXbl(StartLoginWithLoginTypeAndTokenCallback);
+                    EOSXBLManager xblManager = EOSManager.Instance.GetOrCreateManager<EOSXBLManager>();
+                    xblManager.StartLoginWithXbl(StartLoginWithLoginTypeAndTokenCallback);
 #else
-                Steam.SteamManager.Instance.StartLoginWithSteam(StartLoginWithLoginTypeAndTokenCallback);
+                    Steam.SteamManager.Instance.StartLoginWithSteam(StartLoginWithLoginTypeAndTokenCallback);
 #endif
-            }
-            else if (loginType == LoginCredentialType.PersistentAuth)
-            {
+                    break;
+                case LoginCredentialType.PersistentAuth:
 #if UNITY_SWITCH && !UNITY_EDITOR
-                var nintendoManager = EOSManager.Instance.GetOrCreateManager<EOSNintendoManager>();
-                nintendoManager.StartLoginWithPersistantAuthPreselectedUser((LoginCallbackInfo callbackInfo) =>
-            {
-                    if (callbackInfo.ResultCode == Result.Success)
+                    var nintendoManager = EOSManager.Instance.GetOrCreateManager<EOSNintendoManager>();
+                    nintendoManager.StartLoginWithPersistantAuthPreselectedUser((LoginCallbackInfo callbackInfo) =>
                     {
-                        ConfigureUIForLogout();
-                    }
-                    else
-                    {
-                        ConfigureUIForLogin();
-                    }
-                });
+                        if (callbackInfo.ResultCode == Result.Success)
+                        {
+                            ConfigureUIForLogout();
+                        }
+                        else
+                        {
+                            ConfigureUIForLogin();
+                        }
+                    });
 #else
-                EOSManager.Instance.StartPersistentLogin((Epic.OnlineServices.Auth.LoginCallbackInfo callbackInfo) =>
-                {
-                    // In this state, it means one needs to login in again with the previous login type, or a new one, as the
-                    // tokens are invalid
-                    if (callbackInfo.ResultCode != Epic.OnlineServices.Result.Success)
+                    EOSManager.Instance.StartPersistentLogin(callbackInfo =>
                     {
-                        print("Failed to login with Persistent token [" + callbackInfo.ResultCode + "]");
-                        // Other platforms: Fallback to DevAuth login flow
-                        loginType = LoginCredentialType.Developer;
-                        ConfigureUIForDevAuthLogin();
-                    }
-                    else
-                    {
-                        StartLoginWithLoginTypeAndTokenCallback(callbackInfo);
-                    }
-                });
+                        // In this state, it means one needs to login in again with the previous login type, or a new one, as the
+                        // tokens are invalid
+                        if (callbackInfo.ResultCode != Epic.OnlineServices.Result.Success)
+                        {
+                            print("Failed to login with Persistent token [" + callbackInfo.ResultCode + "]");
+                            // Other platforms: Fallback to DevAuth login flow
+                            loginType = LoginCredentialType.Developer;
+                            ConfigureUIForDevAuthLogin();
+                        }
+                        else
+                        {
+                            StartLoginWithLoginTypeAndTokenCallback(callbackInfo);
+                        }
+                    });
 #endif
-            }
-            else if (loginType == LoginCredentialType.ExchangeCode) 
-            {
-                EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
-                                                                       null,
-                                                                       EOSManager.Instance.GetCommandLineArgsFromEpicLauncher().authPassword,
-                                                                       StartLoginWithLoginTypeAndTokenCallback);
-            }
-            else if (loginType == LoginCredentialType.Developer)
-            {
-                string usernameAsString = idInputField.InputField.text.Trim();
-                string passwordAsString = tokenInputField.InputField.text.Trim();
+                    break;
+                case LoginCredentialType.ExchangeCode:
+                    EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
+                        null,
+                        EOSManager.Instance.GetCommandLineArgsFromEpicLauncher().authPassword,
+                        StartLoginWithLoginTypeAndTokenCallback);
+                    break;
+                case LoginCredentialType.Developer:
+                    {
+                        string usernameAsString = idInputField.InputField.text.Trim();
+                        string passwordAsString = tokenInputField.InputField.text.Trim();
 
-                if (string.IsNullOrEmpty(usernameAsString))
-                {
-                    print("Username is missing");
-                    return;
-                }
+                        if (string.IsNullOrEmpty(usernameAsString))
+                        {
+                            print("Username is missing");
+                            return;
+                        }
 
-                if (string.IsNullOrEmpty(passwordAsString))
-                {
-                    print("Password is missing.");
-                    return;
-                }
+                        if (string.IsNullOrEmpty(passwordAsString))
+                        {
+                            print("Password is missing.");
+                            return;
+                        }
 
-                // Deal with other EOS log in issues
-                EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
-                    usernameAsString,
-                    passwordAsString,
-                    StartLoginWithLoginTypeAndTokenCallback);
+                        // Deal with other EOS log in issues
+                        EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
+                            usernameAsString,
+                            passwordAsString,
+                            StartLoginWithLoginTypeAndTokenCallback);
+                        break;
+                    }
             }
         }
 
@@ -1085,7 +1131,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
 
                 default:
-                    if (externalType == invalidConnectType)
+                    if (externalType == invalidCredentialType)
                     {
                         Debug.LogError($"Connect type not valid");
                     }
@@ -1244,12 +1290,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             }
             else if (connectLoginCallbackInfo.ResultCode == Result.InvalidUser)
             {
-                // ask user if they want to connect; sample assumes they do
+                // ask user if they want to ConnectType; sample assumes they do
                 EOSManager.Instance.CreateConnectUserWithContinuanceToken(
                     connectLoginCallbackInfo.ContinuanceToken, 
                     createUserCallbackInfo =>
                 {
-                    print("Creating new connect user");
+                    print("Creating new ConnectType user");
                     if (createUserCallbackInfo.ResultCode == Result.Success)
                     {
                         ConfigureUIForLogout();
@@ -1278,10 +1324,10 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 }
                 else if (connectLoginCallbackInfo.ResultCode == Result.InvalidUser)
                 {
-                    // ask user if they want to connect; sample assumes they do
+                    // ask user if they want to ConnectType; sample assumes they do
                     EOSManager.Instance.CreateConnectUserWithContinuanceToken(connectLoginCallbackInfo.ContinuanceToken, (Epic.OnlineServices.Connect.CreateUserCallbackInfo createUserCallbackInfo) =>
                     {
-                        print("Creating new connect user");
+                        print("Creating new ConnectType user");
                         EOSManager.Instance.StartConnectLoginWithEpicAccount(loginCallbackInfo.LocalUserId, (Epic.OnlineServices.Connect.LoginCallbackInfo retryConnectLoginCallbackInfo) =>
                         {
                             if (retryConnectLoginCallbackInfo.ResultCode == Result.Success)
