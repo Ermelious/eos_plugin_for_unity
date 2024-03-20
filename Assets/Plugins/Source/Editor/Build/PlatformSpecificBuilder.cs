@@ -22,6 +22,7 @@
 
 namespace PlayEveryWare.EpicOnlineServices.Build
 {
+    using Codice.Client.BaseCommands;
     using Editor.Config;
     using System.Collections.Generic;
     using System.IO;
@@ -32,6 +33,7 @@ namespace PlayEveryWare.EpicOnlineServices.Build
     using Debug = UnityEngine.Debug;
     using UnityEditor;
     using PlayEveryWare.EpicOnlineServices.Editor;
+    using Utility;
 
     public abstract class PlatformSpecificBuilder : IPlatformSpecificBuilder
     {
@@ -223,12 +225,17 @@ namespace PlayEveryWare.EpicOnlineServices.Build
         /// <summary>
         /// Looks for any missing output files, and tries to build the project file corresponding to it if the file is missing.
         /// </summary>
-        private void BuildNativeBinaries(bool rebuild = false)
+        /// <returns>True if the native binaries are built successfully, false otherwise.</returns>
+        private bool BuildNativeBinaries(bool rebuild = false)
         {
             var projectsToBuild = new HashSet<string>();
 
+            List<string> existingBinaries = new();
+
             foreach (string projectFile in _projectFileToBinaryFilesMap.Keys)
             {
+                existingBinaries.AddRange(_projectFileToBinaryFilesMap[projectFile].Where(File.Exists));
+
                 // If either rebuild is set to true, or the binary file does not exist.
                 if (rebuild || _projectFileToBinaryFilesMap[projectFile].Any(outputFile => !File.Exists(outputFile)))
                 {
@@ -237,11 +244,58 @@ namespace PlayEveryWare.EpicOnlineServices.Build
                 }
             }
 
+            IDictionary<string, string> binaryRestoreMap = new Dictionary<string, string>();
+            if (existingBinaries.Count > 0)
+            {
+                string tempDirectory = FileUtility.GenerateTempDirectory();
+
+                foreach (var binary in existingBinaries)
+                {
+                    string copiedFile = Path.Combine(tempDirectory, binary);
+                    binaryRestoreMap.Add(copiedFile, binary);
+                    File.Copy(binary, copiedFile);
+                }
+            }
+
+            bool nativeBinariesBuiltSuccessfully = true;
+
             // Build any project that needs to be built.
             foreach (string project in projectsToBuild)
             {
-                BuildUtility.BuildNativeLibrary(project, _nativeCodeOutputDirectory);
+                if (false == BuildUtility.BuildNativeLibrary(project, _nativeCodeOutputDirectory))
+                {
+                    nativeBinariesBuiltSuccessfully = false;
+                }
             }
+
+            // If the native binaries failed to build, then move the cached binaries back into place.
+            if (!nativeBinariesBuiltSuccessfully)
+            {
+                foreach (var (temp, original) in binaryRestoreMap)
+                {
+                    File.Move(temp, original);
+                }
+
+                // If after that the binaries needed all exist, pass the build, but with a warning
+                bool allBinariesExist = true;
+                foreach (var project in _projectFileToBinaryFilesMap.Keys)
+                {
+                    foreach (var binaryFile in _projectFileToBinaryFilesMap[project])
+                    {
+                        if (File.Exists(binaryFile))
+                        {
+                            continue;
+                        }
+
+                        Debug.LogError($"Binary file \"{binaryFile}\" failed to re-compile.");
+                        allBinariesExist = false;
+                    }
+                }
+
+                nativeBinariesBuiltSuccessfully = allBinariesExist;
+            }
+
+            return nativeBinariesBuiltSuccessfully;
         }
 
         /// <summary>

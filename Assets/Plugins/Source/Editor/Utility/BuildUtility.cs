@@ -259,17 +259,17 @@ namespace PlayEveryWare.EpicOnlineServices.Build
         /// <param name="projectFilePath">Fully-qualified path to the project file to build.</param>
         /// <param name="binaryOutput">Fully-qualified path to output the results to.</param>
         /// <exception cref="BuildFailedException">If building fails, a BuildFailedException is thrown.</exception>
-        public static void BuildNativeLibrary(string projectFilePath, string binaryOutput)
+        public static bool BuildNativeLibrary(string projectFilePath, string binaryOutput)
         {
             Debug.Log($"Building native libraries from project file {projectFilePath}");
 
             if (Path.GetExtension(projectFilePath) == ".sln")
             {
-                BuildFromSolutionFile(projectFilePath, binaryOutput);
+                return BuildFromSolutionFile(projectFilePath, binaryOutput);
             }
             else if (Path.GetFileName(projectFilePath) == "Makefile")
             {
-                BuildFromMakefile(projectFilePath, binaryOutput);
+                return BuildFromMakefile(projectFilePath, binaryOutput);
             }
             else
             {
@@ -285,7 +285,7 @@ namespace PlayEveryWare.EpicOnlineServices.Build
         /// <param name="solutionFilePath">Fully-qualified path to the solution file to build.</param>
         /// <param name="binaryOutput">Fully-qualified path to output the results to.</param>
         /// <exception cref="BuildFailedException">Thrown if building fails.</exception>
-        private static void BuildFromSolutionFile(string solutionFilePath, string binaryOutput)
+        private static bool BuildFromSolutionFile(string solutionFilePath, string binaryOutput)
         {
             if (!TryGetCompatibleTools(solutionFilePath, out VSInstallation tools))
             {
@@ -320,27 +320,24 @@ namespace PlayEveryWare.EpicOnlineServices.Build
                 CreateNoWindow = true
             };
 
-            using (var process = Process.Start(processStartInfo))
+            using var process = Process.Start(processStartInfo);
+            string output = process?.StandardOutput.ReadToEnd();
+            string errors = process?.StandardError.ReadToEnd();
+
+            process?.WaitForExit();
+
+            if (0 == process?.ExitCode)
             {
-                string output = process?.StandardOutput.ReadToEnd();
-                string errors = process?.StandardError.ReadToEnd();
-
-                process?.WaitForExit();
-
-                if (0 == process?.ExitCode)
-                {
-                    Debug.Log(output);
-                    Debug.Log($"Succeeded in building native code library \"{solutionFilePath}\"");
-                }
-                else
-                {
-                    // msbuild might succeed to not build - it did it's job if it determines that it cannot build
-                    errors = "" == errors ? output : errors;
-                    Debug.LogError(errors);
-                    Debug.LogError($"Failed to build solution \"{solutionFilePath}\"");
-                    throw new BuildFailedException($"Failed to build solution \"{solutionFilePath}\"");
-                }
+                Debug.Log(output);
+                Debug.Log($"Succeeded in building native code library \"{solutionFilePath}\"");
+                return true;
             }
+
+            // msbuild might succeed to not build - it did it's job if it determines that it cannot build
+            errors = "" == errors ? output : errors;
+            Debug.LogError(errors);
+            Debug.LogError($"Failed to build solution \"{solutionFilePath}\"");
+            throw new BuildFailedException($"Failed to build solution \"{solutionFilePath}\"");
         }
 
         /// <summary>
@@ -350,7 +347,7 @@ namespace PlayEveryWare.EpicOnlineServices.Build
         /// <param name="makefileFilePath">Fully-qualified path to the Makefile to build.</param>
         /// <param name="binaryOutput">Fully-qualified path to output the results to.</param>
         /// <exception cref="BuildFailedException">Thrown if building fails.</exception>
-        private static void BuildFromMakefile(string makefileFilePath, string binaryOutput)
+        private static bool BuildFromMakefile(string makefileFilePath, string binaryOutput)
         {
             if (!CheckWSLInstalled())
             {
@@ -363,11 +360,22 @@ namespace PlayEveryWare.EpicOnlineServices.Build
                                                 "which make || sudo apt-get install -y make;\"";
 
             // Command to run the makefile
-            string makeCmd = "bash -c \"cd /path/to/your/makefile/directory && make\"";
+            string makeCmd = $"bash -c \"cd {Path.GetDirectoryName(makefileFilePath)} && make\"";
 
             // Execute commands
-            RunWSLCommand(checkAndInstallPackagesCmd);
-            RunWSLCommand(makeCmd);
+            if (!RunWSLCommand(checkAndInstallPackagesCmd))
+            {
+                throw new BuildFailedException(
+                    $"Failed to run command that checks for packages existing and installs them if they are missing.");
+            }
+
+            if (!RunWSLCommand(makeCmd))
+            {
+                throw new BuildFailedException(
+                    $"Failed to make from Makefile.");
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -401,9 +409,9 @@ namespace PlayEveryWare.EpicOnlineServices.Build
         /// Runs a command in Windows Subsystem for Linux.
         /// </summary>
         /// <param name="command">The command to run in WSL</param>
-        private static void RunWSLCommand(string command)
+        private static bool RunWSLCommand(string command)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo()
+            ProcessStartInfo startInfo = new()
             {
                 FileName = "wsl.exe",
                 Arguments = command,
@@ -413,9 +421,18 @@ namespace PlayEveryWare.EpicOnlineServices.Build
             };
 
             using Process process = Process.Start(startInfo);
+            if (process == null)
+            {
+                return false;
+            }
+
             using StreamReader reader = process.StandardOutput;
             string result = reader.ReadToEnd();
             Debug.Log(result);
+
+            process.WaitForExit();
+
+            return 0 != process.ExitCode;
         }
 
         /// <summary>
