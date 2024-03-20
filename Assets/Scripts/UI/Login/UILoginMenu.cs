@@ -88,7 +88,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         private GameObject selectedGameObject;
 
         //use to indicate Connect login instead of Auth
-        private const LoginCredentialType connect = (LoginCredentialType)(-1);
+        //private const LoginCredentialType connect = (LoginCredentialType)(-1);
         private LoginCredentialType loginType = LoginCredentialType.Developer;
         //default to invalid value
         private const ExternalCredentialType invalidConnectType = (ExternalCredentialType)(-1);
@@ -156,7 +156,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     loginType = LoginCredentialType.ExchangeCode;
                     break;
                 case 5:
-                    loginType = connect;
+                    loginType = LoginCredentialType.RefreshToken;
                     break;
                 case 0:
                 default:
@@ -165,7 +165,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
             }
 
-            if (loginType == connect)
+            if (loginType == LoginCredentialType.RefreshToken)
             {
                 connectType = GetConnectType();
             }
@@ -179,7 +179,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         public void OnConnectDropdownChange()
         {
-            if (loginType != connect)
+            if (loginType != LoginCredentialType.RefreshToken)
             {
                 return;
             }
@@ -271,6 +271,8 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 SceneManager.LoadScene(sceneToLoad);
             });
         }
+
+        #region Functions to deal with input handling
 
         private void EnterPressedToLogin()
         {
@@ -470,6 +472,8 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             // If tab was pressed, progress the selected control to the next appropriate one.
             HandleTabInput();
         }
+
+        #endregion
 
         public void Update()
         { 
@@ -826,7 +830,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 case LoginCredentialType.ExchangeCode:
                     ConfigureUIForExchangeCode();
                     break;
-                case connect:
+                case LoginCredentialType.RefreshToken:
                     ConfigureUIForConnectLogin();
                     break;
                 case LoginCredentialType.Developer:
@@ -973,16 +977,10 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             if(PreventLogIn!=null)
                 StopCoroutine(PreventLogIn);
             PreventLogIn = StartCoroutine(TurnButtonOnAfter15Sec());
-            //usernameInputField.enabled = false;
-            //passwordInputField.enabled = false;
             print("Attempting to login...");
 
-            // Disabled at the moment to work around a crash that happens
-            //LoggingInterface.SetCallback((LogMessage logMessage) =>{
-            //    print(logMessage.Message);
-            //});
-
-            if (loginType == connect)
+            
+            if (loginType == LoginCredentialType.RefreshToken)
             {
                 AcquireTokenForConnectLogin(connectType);
             }
