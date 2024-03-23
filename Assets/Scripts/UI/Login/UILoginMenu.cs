@@ -66,7 +66,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         public Dropdown connectTypeDropdown;
 
         public Text loginButtonText;
-        private string _OriginalloginButtonText;
         public Button loginButton;
         private Coroutine PreventLogIn = null;
         public Button logoutButton;
@@ -87,12 +86,13 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private GameObject selectedGameObject;
 
-        //use to indicate Connect login instead of Auth
-        private const LoginCredentialType connect = (LoginCredentialType)(-1);
-        private LoginCredentialType loginType = LoginCredentialType.Developer;
-        //default to invalid value
-        private const ExternalCredentialType invalidConnectType = (ExternalCredentialType)(-1);
-        private ExternalCredentialType connectType = invalidConnectType;
+        // Use to indicate Connect login instead of Auth
+        private const LoginCredentialType Connect = (LoginCredentialType)(-1);
+        private LoginCredentialType _loginType = LoginCredentialType.Developer;
+
+        // Default to invalid value
+        private const ExternalCredentialType InvalidConnectType = (ExternalCredentialType)(-1);
+        private ExternalCredentialType _externalCredentialType = InvalidConnectType;
 
         Apple.EOSSignInWithAppleManager signInWithAppleManager = null;
 
@@ -100,20 +100,25 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         public static string IdGlobalCache = string.Empty;
         public static string TokenGlobalCache = string.Empty;
 
+        private static LoginCredentialType GetDefaultLoginCredentialType()
+        {
+#if UNITY_EDITOR
+            return LoginCredentialType.AccountPortal;  // Default in editor
+#elif UNITY_SWITCH
+            return LoginCredentialType.PersistentAuth; // Default on switch
+#elif UNITY_PS4 || UNITY_PS5 || UNITY_GAMECORE
+            return LoginCredentialType.ExternalAuth;   // Default on other consoles
+#else
+            return LoginCredentialType.AccountPortal;  // Default on other platforms
+#endif
+        }
+
         private void Awake()
         {
-            Debug.Log("Awake called for UILoginMenu");
             idInputField.InputField.onEndEdit.AddListener(CacheIdInputField);
             tokenInputField.InputField.onEndEdit.AddListener(CacheTokenField);
-#if UNITY_EDITOR
-            loginType = LoginCredentialType.AccountPortal; // Default in editor
-#elif UNITY_SWITCH
-            loginType = LoginCredentialType.PersistentAuth; // Default on switch
-#elif UNITY_PS4 || UNITY_PS5 || UNITY_GAMECORE
-            loginType = LoginCredentialType.ExternalAuth; // Default on other consoles
-#else
-            loginType = LoginCredentialType.AccountPortal; // Default on other platforms
-#endif
+
+            _loginType = GetDefaultLoginCredentialType();
 
         // TODO: This will fail on anything that is mac, windows, or linux, or is an editor version of any of the above
 #if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX
@@ -123,7 +128,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 #if !ENABLE_INPUT_SYSTEM && (UNITY_XBOXONE || UNITY_GAMECORE_XBOXONE || UNITY_GAMECORE_SCARLETT || UNITY_PS4 || UNITY_PS5 || UNITY_SWITCH)
             Debug.LogError("Input currently handled by Input Manager. Input System Package is required for controller support on consoles.");
 #endif
-            Debug.Log("Awake has finished.");
         }
 
         private void CacheIdInputField(string value)
@@ -141,37 +145,37 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             switch (value)
             {
                 case 1:
-                    loginType = LoginCredentialType.AccountPortal;
+                    _loginType = LoginCredentialType.AccountPortal;
                     ConfigureUIForAccountPortalLogin();
                     break;
                 case 2:
-                    loginType = LoginCredentialType.PersistentAuth;
+                    _loginType = LoginCredentialType.PersistentAuth;
                     ConfigureUIForPersistentLogin();
                     break;
                 case 3:
-                    loginType = LoginCredentialType.ExternalAuth;
+                    _loginType = LoginCredentialType.ExternalAuth;
                     ConfigureUIForExternalAuth();
                     break;
                 case 4:
-                    loginType = LoginCredentialType.ExchangeCode;
+                    _loginType = LoginCredentialType.ExchangeCode;
                     break;
                 case 5:
-                    loginType = connect;
+                    _loginType = Connect;
                     break;
                 case 0:
                 default:
-                    loginType = LoginCredentialType.Developer;
+                    _loginType = LoginCredentialType.Developer;
                     ConfigureUIForDevAuthLogin();
                     break;
             }
 
-            if (loginType == connect)
+            if (_loginType == Connect)
             {
-                connectType = GetConnectType();
+                _externalCredentialType = GetConnectType();
             }
             else
             {
-                connectType = invalidConnectType;
+                _externalCredentialType = InvalidConnectType;
             }
 
             ConfigureUIForLogin();
@@ -179,12 +183,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         public void OnConnectDropdownChange()
         {
-            if (loginType != connect)
+            if (_loginType != Connect)
             {
                 return;
             }
 
-            connectType = GetConnectType();
+            _externalCredentialType = GetConnectType();
             ConfigureUIForLogin();
         }
 
@@ -197,13 +201,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             }
             else
             {
-                return invalidConnectType;
+                return InvalidConnectType;
             }
         }
 
         public void Start()
         {
-            _OriginalloginButtonText = loginButtonText.text;
             InitConnectDropdown();
             ConfigureUIForLogin();
 
@@ -562,7 +565,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             DemoTitle.gameObject.SetActive(true);
             loginTypeDropdown.gameObject.SetActive(true);
 
-            loginButtonText.text = _OriginalloginButtonText;
             if (PreventLogIn != null)
                 StopCoroutine(PreventLogIn);
             loginButton.enabled = true;
@@ -666,7 +668,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             tokenText.gameObject.SetActive(false);
             removePersistentTokenButton.gameObject.SetActive(false);
 
-            switch (connectType)// might need to check this better, use ifdefs to turn on platform specific cases that switch off the login button
+            switch (_externalCredentialType)// might need to check this better, use ifdefs to turn on platform specific cases that switch off the login button
             {
 
                 //case ExternalCredentialType.GogSessionTicket:
@@ -706,7 +708,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
             }
 
-            if (connectType == ExternalCredentialType.OpenidAccessToken)
+            if (_externalCredentialType == ExternalCredentialType.OpenidAccessToken)
             {
                 tokenText.text = "Credentials";
                 tokenTooltip.Text = "Credentials for OpenID login sample in the form of username:password";
@@ -795,16 +797,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private void ConfigureUIForLogin()
         {
-            if (OnLogout != null)
-            {
-                OnLogout.Invoke();
-            }
+            OnLogout?.Invoke();
 
             SceneSwitcherDropDown.gameObject.SetActive(true);
             DemoTitle.gameObject.SetActive(true);
             loginTypeDropdown.gameObject.SetActive(true);
 
-            loginButtonText.text = _OriginalloginButtonText;
             if (PreventLogIn != null)
                 StopCoroutine(PreventLogIn);
             loginButton.enabled = true;
@@ -812,7 +810,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             loginButton.gameObject.SetActive(true);
             logoutButton.gameObject.SetActive(false);
 
-            switch (loginType)
+            switch (_loginType)
             {
                 case LoginCredentialType.AccountPortal:
                     ConfigureUIForAccountPortalLogin();
@@ -826,7 +824,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 case LoginCredentialType.ExchangeCode:
                     ConfigureUIForExchangeCode();
                     break;
-                case connect:
+                case Connect:
                     ConfigureUIForConnectLogin();
                     break;
                 case LoginCredentialType.Developer:
@@ -898,24 +896,26 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         // For now, the only supported login type that requires a 'username' is the dev auth one
         bool SelectedLoginTypeRequiresUsername()
         {
-            return loginType == LoginCredentialType.Developer;
+            return _loginType == LoginCredentialType.Developer;
         }
 
         // For now, the only supported login type that requires a 'password' is the dev auth one
         bool SelectedLoginTypeRequiresPassword()
         {
-            return loginType == LoginCredentialType.Developer;
+            return _loginType == LoginCredentialType.Developer;
         }
 
-        private IEnumerator TurnButtonOnAfter15Sec()
+        private IEnumerator TurnButtonOnAfter(int seconds = 15)
         {
-            for (int i = 15; i >= 0; i--)
+            string originalButtonText = loginButtonText.text;
+
+            for (int i = seconds; i >= 0; i--)
             {
                 yield return new WaitForSecondsRealtime(1);
-                loginButtonText.text = _OriginalloginButtonText + " (" + i + ")";
+                loginButtonText.text = originalButtonText + " (" + i + ")";
             }
             loginButton.enabled = true;
-            loginButtonText.text = _OriginalloginButtonText;
+            loginButtonText.text = originalButtonText;
         }
 
         //-------------------------------------------------------------------------
@@ -972,21 +972,15 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             loginButton.enabled = false;
             if(PreventLogIn!=null)
                 StopCoroutine(PreventLogIn);
-            PreventLogIn = StartCoroutine(TurnButtonOnAfter15Sec());
-            //usernameInputField.enabled = false;
-            //passwordInputField.enabled = false;
+            PreventLogIn = StartCoroutine(TurnButtonOnAfter());
+            
             print("Attempting to login...");
 
-            // Disabled at the moment to work around a crash that happens
-            //LoggingInterface.SetCallback((LogMessage logMessage) =>{
-            //    print(logMessage.Message);
-            //});
-
-            if (loginType == connect)
+            if (_loginType == Connect)
             {
-                AcquireTokenForConnectLogin(connectType);
+                AcquireTokenForConnectLogin(_externalCredentialType);
             }
-            else if (loginType == LoginCredentialType.ExternalAuth)
+            else if (_loginType == LoginCredentialType.ExternalAuth)
             {
 #if (UNITY_PS4 || UNITY_PS5) && !UNITY_EDITOR
 #if UNITY_PS4
@@ -1007,7 +1001,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 Steam.SteamManager.Instance.StartLoginWithSteam(StartLoginWithLoginTypeAndTokenCallback);
 #endif
             }
-            else if (loginType == LoginCredentialType.PersistentAuth)
+            else if (_loginType == LoginCredentialType.PersistentAuth)
             {
 #if UNITY_SWITCH && !UNITY_EDITOR
                 var nintendoManager = EOSManager.Instance.GetOrCreateManager<EOSNintendoManager>();
@@ -1031,7 +1025,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     {
                         print("Failed to login with Persistent token [" + callbackInfo.ResultCode + "]");
                         // Other platforms: Fallback to DevAuth login flow
-                        loginType = LoginCredentialType.Developer;
+                        _loginType = LoginCredentialType.Developer;
                         ConfigureUIForDevAuthLogin();
                     }
                     else
@@ -1041,9 +1035,9 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 });
 #endif
             }
-            else if (loginType == LoginCredentialType.ExchangeCode) 
+            else if (_loginType == LoginCredentialType.ExchangeCode) 
             {
-                EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
+                EOSManager.Instance.StartLoginWithLoginTypeAndToken(_loginType,
                                                                        null,
                                                                        EOSManager.Instance.GetCommandLineArgsFromEpicLauncher().authPassword,
                                                                        StartLoginWithLoginTypeAndTokenCallback);
@@ -1051,7 +1045,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             else
             {
                 // Deal with other EOS log in issues
-                EOSManager.Instance.StartLoginWithLoginTypeAndToken(loginType,
+                EOSManager.Instance.StartLoginWithLoginTypeAndToken(_loginType,
                                                                         usernameAsString,
                                                                         passwordAsString,
                                                                         StartLoginWithLoginTypeAndTokenCallback);
@@ -1093,7 +1087,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                     break;
 
                 default:
-                    if (externalType == invalidConnectType)
+                    if (externalType == InvalidConnectType)
                     {
                         Debug.LogError($"Connect type not valid");
                     }
