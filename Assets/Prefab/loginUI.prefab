@@ -2296,19 +2296,7 @@ MonoBehaviour:
   m_ItemImage: {fileID: 0}
   m_Value: 0
   m_Options:
-    m_Options:
-    - m_Text: Dev Auth
-      m_Image: {fileID: 0}
-    - m_Text: Account Portal
-      m_Image: {fileID: 0}
-    - m_Text: PersistentAuth
-      m_Image: {fileID: 0}
-    - m_Text: ExternalAuth
-      m_Image: {fileID: 0}
-    - m_Text: ExchangeCode
-      m_Image: {fileID: 0}
-    - m_Text: Connect
-      m_Image: {fileID: 0}
+    m_Options: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -2440,7 +2428,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Dev Auth
+  m_Text: 
 --- !u!1 &5557305858791868637
 GameObject:
   m_ObjectHideFlags: 0

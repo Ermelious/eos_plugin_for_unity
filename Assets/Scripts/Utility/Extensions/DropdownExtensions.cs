@@ -32,7 +32,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         {
             var selectedString = dropdown.options[dropdown.value].text;
 
-            UnityEngine.Debug.Log($"Selected string is: \"{selectedString}\".");
             if (Enum.TryParse(selectedString, out T value))
             {
                 selected = value;

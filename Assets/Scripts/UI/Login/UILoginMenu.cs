@@ -44,6 +44,7 @@ using PlayEveryWare.EpicOnlineServices;
 
 namespace PlayEveryWare.EpicOnlineServices.Samples
 {
+    using PlasticGui.Configuration.CloudEdition.Welcome;
     using System.IO;
     using System.Linq;
 
@@ -88,7 +89,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         private GameObject selectedGameObject;
 
         //use to indicate Connect login instead of Auth
-        private const LoginCredentialType connect = (LoginCredentialType)(-1);
+        private const LoginCredentialType connect = LoginCredentialType.RefreshToken;
         private LoginCredentialType loginType = LoginCredentialType.Developer;
         //default to invalid value
         private const ExternalCredentialType invalidConnectType = (ExternalCredentialType)(-1);
@@ -138,34 +139,9 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         public void OnLoginTypeChanged(int value)
         {
-            switch (value)
-            {
-                case 1:
-                    loginType = LoginCredentialType.AccountPortal;
-                    ConfigureUIForAccountPortalLogin();
-                    break;
-                case 2:
-                    loginType = LoginCredentialType.PersistentAuth;
-                    ConfigureUIForPersistentLogin();
-                    break;
-                case 3:
-                    loginType = LoginCredentialType.ExternalAuth;
-                    ConfigureUIForExternalAuth();
-                    break;
-                case 4:
-                    loginType = LoginCredentialType.ExchangeCode;
-                    break;
-                case 5:
-                    loginType = connect;
-                    break;
-                case 0:
-                default:
-                    loginType = LoginCredentialType.Developer;
-                    ConfigureUIForDevAuthLogin();
-                    break;
-            }
+            loginType = loginTypeDropdown.GetSelectedEnum<LoginCredentialType>();
 
-            if (loginType == connect)
+            if (loginType == LoginCredentialType.RefreshToken)
             {
                 connectType = GetConnectType();
             }
@@ -179,7 +155,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         public void OnConnectDropdownChange()
         {
-            if (loginType != connect)
+            if (loginType != LoginCredentialType.RefreshToken)
             {
                 return;
             }
@@ -205,6 +181,8 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         {
             _OriginalloginButtonText = loginButtonText.text;
             InitConnectDropdown();
+            InitLoginTypeDropdown();
+
             ConfigureUIForLogin();
 
             // Populate the Scene dropdown.
@@ -485,8 +463,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private void ConfigureUIForDevAuthLogin()
         {
-            loginTypeDropdown.value = loginTypeDropdown.options.FindIndex(option => option.text == "Dev Auth");
-
             if (!string.IsNullOrEmpty(IdGlobalCache))
             {
                 idInputField.InputField.text = IdGlobalCache;
@@ -532,8 +508,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private void ConfigureUIForAccountPortalLogin()
         {
-            loginTypeDropdown.value = loginTypeDropdown.options.FindIndex(option => option.text == "Account Portal");
-
             idContainer.gameObject.SetActive(true);
             connectTypeContainer.gameObject.SetActive(false);
             idInputField.gameObject.SetActive(false);
@@ -574,8 +548,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private void ConfigureUIForPersistentLogin()
         {
-            loginTypeDropdown.value = loginTypeDropdown.options.FindIndex(option => option.text == "PersistentAuth");
-
             idContainer.gameObject.SetActive(true);
             connectTypeContainer.gameObject.SetActive(false);
             idInputField.gameObject.SetActive(false);
@@ -603,8 +575,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         //-------------------------------------------------------------------------
         private void ConfigureUIForExternalAuth()
         {
-            loginTypeDropdown.value = loginTypeDropdown.options.FindIndex(option => option.text == "ExternalAuth");
-
             idContainer.gameObject.SetActive(true);
             connectTypeContainer.gameObject.SetActive(false);
             idInputField.gameObject.SetActive(false);
@@ -631,8 +601,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
         private void ConfigureUIForExchangeCode()
         {
-            loginTypeDropdown.value = loginTypeDropdown.options.FindIndex(option => option.text == "ExchangeCode");
-
             idContainer.gameObject.SetActive(true);
             connectTypeContainer.gameObject.SetActive(false);
             idInputField.gameObject.SetActive(false);
@@ -765,6 +733,18 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             
         }
 
+        private void InitLoginTypeDropdown()
+        {
+            List<string> loginTypeLabels = (from LoginCredentialType type in Enum.GetValues(typeof(LoginCredentialType))
+                where type.IsDemoed()
+                select type.ToString()).ToList();
+
+            loginTypeLabels.Sort();
+
+            loginTypeDropdown.options = loginTypeLabels.Select(
+                label => new Dropdown.OptionData() { text = label }).ToList();
+        }
+
         private void InitConnectDropdown()
         {
             List<string> externalCredentialTypeLabels = (from ExternalCredentialType type in Enum.GetValues(typeof(ExternalCredentialType))
@@ -810,7 +790,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
                 case LoginCredentialType.ExchangeCode:
                     ConfigureUIForExchangeCode();
                     break;
-                case connect:
+                case LoginCredentialType.RefreshToken:
                     ConfigureUIForConnectLogin();
                     break;
                 case LoginCredentialType.Developer:
@@ -941,32 +921,29 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             string usernameAsString = idInputField.InputField.text.Trim();
             string passwordAsString = tokenInputField.InputField.text.Trim();
 
-            if (SelectedLoginTypeRequiresUsername() && usernameAsString.Length <= 0)
+            if (loginType == LoginCredentialType.Developer)
             {
-                print("Username is missing.");
-                return;
-            }
+                if (string.IsNullOrEmpty(usernameAsString))
+                {
+                    print("Username is missing");
+                    return;
+                }
 
-            if (SelectedLoginTypeRequiresPassword() && passwordAsString.Length <= 0)
-            {
-                print("Password is missing.");
-                return;
+                if (string.IsNullOrEmpty(passwordAsString))
+                {
+                    print("Password is missing");
+                    return;
+                }
             }
 
             loginButton.enabled = false;
             if(PreventLogIn!=null)
                 StopCoroutine(PreventLogIn);
             PreventLogIn = StartCoroutine(TurnButtonOnAfter15Sec());
-            //usernameInputField.enabled = false;
-            //passwordInputField.enabled = false;
+
             print("Attempting to login...");
 
-            // Disabled at the moment to work around a crash that happens
-            //LoggingInterface.SetCallback((LogMessage logMessage) =>{
-            //    print(logMessage.Message);
-            //});
-
-            if (loginType == connect)
+            if (loginType == LoginCredentialType.RefreshToken)
             {
                 AcquireTokenForConnectLogin(connectType);
             }
