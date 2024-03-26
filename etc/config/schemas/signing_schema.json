@@ -1,0 +1,26 @@
+{
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "pathToSignTool": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Path to the SignTool to use"
+    },
+    "pathToPFX": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Path to PFX file"
+    },
+    "pfxPassword": {
+      "type": "string",
+      "description": "Password for PFX file"
+    },
+    "timestampURL": {
+      "type": "string",
+      "is_uri": true,
+      "description": "URL to use for generating timestamp"
+    }
+  },
+  "required": ["pathToSignTool", "pathToPFX", "pfxPassword", "timestampURL"]
+}

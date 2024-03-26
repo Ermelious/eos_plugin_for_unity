@@ -22,6 +22,7 @@
 
 namespace PlayEveryWare.EpicOnlineServices
 {
+    using Newtonsoft.Json;
     using System;
     using System.Linq;
     using System.Threading.Tasks;
@@ -46,6 +47,21 @@ namespace PlayEveryWare.EpicOnlineServices
         : ICloneable
 #endif
     {
+        protected string _schema = "";
+
+        [JsonProperty("$schema")]
+        protected string Schema
+        {
+            private set
+            {
+                _schema = value;
+            }
+            get
+            {
+                return JsonUtility.GetSchemaFilePath(Path.Combine(Directory, Filename));
+            }
+        }
+
         protected readonly string Filename;
         protected readonly string Directory;
 

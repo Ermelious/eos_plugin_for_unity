@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "useAppVersionAsProductVersion": {
+    "type": "boolean",
+    "description": "Use the application version as the product version in EOS"
+  }
+}
