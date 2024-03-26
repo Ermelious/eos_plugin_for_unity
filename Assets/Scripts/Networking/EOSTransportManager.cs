@@ -1074,11 +1074,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
                     printError($"EOSTransportManager.SendPacket: Unable to send {options.Data.Count} byte packet to RemoteUserId '{options.RemoteUserId}' - Error result, {result}.");
                     return;
                 }
-
             }
-#if EOS_P2PMANAGER_DEBUG
-            Debug.LogFormat("EOSTransportManager.SendPacket: Successfully sent {0} byte packet to RemoteUserId '{1}'.", packet.Length, remoteUserId);
-#endif
         }
 
         /// <summary>

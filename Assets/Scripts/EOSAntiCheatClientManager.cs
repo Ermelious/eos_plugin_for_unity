@@ -77,9 +77,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
 
             if (AntiCheatHandle == null)
             {
-#if !UNITY_ANDROID && !UNITY_IOS
-                Debug.LogError("AntiCheatClientManager (ctor): unable to get handle to AntiCheatClientInterface");
-#endif
+                Debug.LogWarning("AntiCheatManager: Unable to get handle to AntiCheatClientInterface.");
                 return;
             }
 
