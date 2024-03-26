@@ -29,6 +29,12 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
             return UnityEngine.JsonUtility.ToJson(obj, pretty);
         }
 
+        public static T FromJsonFile<T>(string filepath)
+        {
+            var jsonString = FileUtility.ReadAllText(filepath);
+            return FromJson<T>(jsonString);
+        }
+
         public static T FromJson<T>(string json)
         {
             return UnityEngine.JsonUtility.FromJson<T>(json);
