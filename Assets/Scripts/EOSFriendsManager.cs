@@ -168,127 +168,154 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
             CachedSearchResultsDirty = true;
         }
 
-        [Obsolete("SendInvite is obsolete.  ErrorCode=NotImplemented")]
-        public void SendInvite(EpicAccountId friendUserId, OnFriendsCallback AddFriendCompleted)
-        {
-            if(friendUserId.IsValid())
-            {
-                Debug.LogError("Friends (AddFriend): friendUserId parameter is invalid!");
-                AddFriendCompleted?.Invoke(Result.InvalidProductUserID);
-                return;
-            }
+        ///// <summary>
+        ///// TODO: Remove unreferenced / deprecated code.
+        ///// </summary>
+        ///// <param name="friendUserId"></param>
+        ///// <param name="AddFriendCompleted"></param>
+        //[Obsolete("SendInvite is obsolete.  ErrorCode=NotImplemented")]
+        //public void SendInvite(EpicAccountId friendUserId, OnFriendsCallback AddFriendCompleted)
+        //{
+        //    if(friendUserId.IsValid())
+        //    {
+        //        Debug.LogError("Friends (AddFriend): friendUserId parameter is invalid!");
+        //        AddFriendCompleted?.Invoke(Result.InvalidProductUserID);
+        //        return;
+        //    }
 
-            SendInviteOptions options = new SendInviteOptions()
-            {
-                LocalUserId = EOSManager.Instance.GetLocalUserId(),
-                TargetUserId = friendUserId
-            };
+        //    SendInviteOptions options = new SendInviteOptions()
+        //    {
+        //        LocalUserId = EOSManager.Instance.GetLocalUserId(),
+        //        TargetUserId = friendUserId
+        //    };
 
-            AddFriendCallback = AddFriendCompleted;
+        //    AddFriendCallback = AddFriendCompleted;
 
-            FriendsHandle.SendInvite(ref options, null, OnSendInviteCompleted);
-        }
+        //    FriendsHandle.SendInvite(ref options, null, OnSendInviteCompleted);
+        //}
 
-        [Obsolete("OnSendInviteCompleted is obsolete.  ErrorCode=NotImplemented")]
-        private void OnSendInviteCompleted(ref SendInviteCallbackInfo data)
-        {
-            //if (data == null)
-            //{
-            //    Debug.LogError("Friends (SendInviteCallback): data is null");
-            //    AddFriendCallback?.Invoke(Result.InvalidState);
-            //    return;
-            //}
+        ///// <summary>
+        ///// TODO: Remove unreferenced / obsolete code.
+        ///// </summary>
+        ///// <param name="data"></param>
+        //[Obsolete("OnSendInviteCompleted is obsolete.  ErrorCode=NotImplemented")]
+        //private void OnSendInviteCompleted(ref SendInviteCallbackInfo data)
+        //{
+        //    //if (data == null)
+        //    //{
+        //    //    Debug.LogError("Friends (SendInviteCallback): data is null");
+        //    //    AddFriendCallback?.Invoke(Result.InvalidState);
+        //    //    return;
+        //    //}
 
-            if (data.ResultCode != Result.Success)
-            {
-                Debug.LogErrorFormat("Friends (SendInviteCallback): SendInvite error: {0}", data.ResultCode);
-                AddFriendCallback?.Invoke(data.ResultCode);
-                return;
-            }
+        //    if (data.ResultCode != Result.Success)
+        //    {
+        //        Debug.LogErrorFormat("Friends (SendInviteCallback): SendInvite error: {0}", data.ResultCode);
+        //        AddFriendCallback?.Invoke(data.ResultCode);
+        //        return;
+        //    }
 
-            Debug.LogFormat("Friends (SendInviteCallback): SendInvite Complete for user id: {0}", data.LocalUserId);
-            AddFriendCallback?.Invoke(Result.Success);
-        }
+        //    Debug.LogFormat("Friends (SendInviteCallback): SendInvite Complete for user id: {0}", data.LocalUserId);
+        //    AddFriendCallback?.Invoke(Result.Success);
+        //}
 
-        public void AcceptInvite(EpicAccountId friendUserId, OnFriendsCallback AcceptInviteCompleted)
-        {
-            if (friendUserId.IsValid())
-            {
-                Debug.LogError("Friends (AcceptInvite): friendUserId parameter is invalid!");
-                AcceptInviteCompleted?.Invoke(Result.InvalidProductUserID);
-                return;
-            }
+        ///// <summary>
+        ///// TODO: Remove unreferenced / obsolete code.
+        ///// </summary>
+        ///// <param name="friendUserId"></param>
+        ///// <param name="AcceptInviteCompleted"></param>
+        //public void AcceptInvite(EpicAccountId friendUserId, OnFriendsCallback AcceptInviteCompleted)
+        //{
+        //    if (friendUserId.IsValid())
+        //    {
+        //        Debug.LogError("Friends (AcceptInvite): friendUserId parameter is invalid!");
+        //        AcceptInviteCompleted?.Invoke(Result.InvalidProductUserID);
+        //        return;
+        //    }
 
-            AcceptInviteOptions options = new AcceptInviteOptions()
-            {
-                LocalUserId = EOSManager.Instance.GetLocalUserId(),
-                TargetUserId = friendUserId
-            };
+        //    AcceptInviteOptions options = new AcceptInviteOptions()
+        //    {
+        //        LocalUserId = EOSManager.Instance.GetLocalUserId(),
+        //        TargetUserId = friendUserId
+        //    };
 
-            AcceptInviteCallback = AcceptInviteCompleted;
+        //    AcceptInviteCallback = AcceptInviteCompleted;
 
-            FriendsHandle.AcceptInvite(ref options, null, OnAcceptInviteCompleted);
-        }
+        //    FriendsHandle.AcceptInvite(ref options, null, OnAcceptInviteCompleted);
+        //}
 
-        private void OnAcceptInviteCompleted(ref AcceptInviteCallbackInfo data)
-        {
-            //if (data == null)
-            //{
-            //    Debug.LogError("Friends (OnAcceptInviteCompleted): data is null");
-            //    AcceptInviteCallback?.Invoke(Result.InvalidState);
-            //    return;
-            //}
+        ///// <summary>
+        ///// TODO: Remove unreferenced code.
+        ///// </summary>
+        ///// <param name="data"></param>
+        //private void OnAcceptInviteCompleted(ref AcceptInviteCallbackInfo data)
+        //{
+        //    //if (data == null)
+        //    //{
+        //    //    Debug.LogError("Friends (OnAcceptInviteCompleted): data is null");
+        //    //    AcceptInviteCallback?.Invoke(Result.InvalidState);
+        //    //    return;
+        //    //}
 
-            if (data.ResultCode != Result.Success)
-            {
-                Debug.LogErrorFormat("Friends (OnAcceptInviteCompleted): AcceptInvite error: {0}", data.ResultCode);
-                AcceptInviteCallback?.Invoke(data.ResultCode);
-                return;
-            }
+        //    if (data.ResultCode != Result.Success)
+        //    {
+        //        Debug.LogErrorFormat("Friends (OnAcceptInviteCompleted): AcceptInvite error: {0}", data.ResultCode);
+        //        AcceptInviteCallback?.Invoke(data.ResultCode);
+        //        return;
+        //    }
 
-            Debug.LogFormat("Friends (OnAcceptInviteCompleted): Accept Invite Complete for user id: {0}", data.LocalUserId);
-            AcceptInviteCallback?.Invoke(Result.Success);
-        }
+        //    Debug.LogFormat("Friends (OnAcceptInviteCompleted): Accept Invite Complete for user id: {0}", data.LocalUserId);
+        //    AcceptInviteCallback?.Invoke(Result.Success);
+        //}
 
-        public void RejectInvite(EpicAccountId friendUserId, OnFriendsCallback RejectInviteCompleted)
-        {
-            if (friendUserId.IsValid())
-            {
-                Debug.LogError("Friends (RejectInvite): friendUserId parameter is invalid!");
-                RejectInviteCompleted?.Invoke(Result.InvalidProductUserID);
-                return;
-            }
+        ///// <summary>
+        ///// TODO: Remove unreferenced code.
+        ///// </summary>
+        ///// <param name="friendUserId"></param>
+        ///// <param name="RejectInviteCompleted"></param>
+        //public void RejectInvite(EpicAccountId friendUserId, OnFriendsCallback RejectInviteCompleted)
+        //{
+        //    if (friendUserId.IsValid())
+        //    {
+        //        Debug.LogError("Friends (RejectInvite): friendUserId parameter is invalid!");
+        //        RejectInviteCompleted?.Invoke(Result.InvalidProductUserID);
+        //        return;
+        //    }
 
-            RejectInviteOptions options = new RejectInviteOptions()
-            {
-                LocalUserId = EOSManager.Instance.GetLocalUserId(),
-                TargetUserId = friendUserId
-            };
+        //    RejectInviteOptions options = new RejectInviteOptions()
+        //    {
+        //        LocalUserId = EOSManager.Instance.GetLocalUserId(),
+        //        TargetUserId = friendUserId
+        //    };
 
-            RejectInviteCallback = RejectInviteCompleted;
+        //    RejectInviteCallback = RejectInviteCompleted;
 
-            FriendsHandle.RejectInvite(ref options, null, OnRejectInviteCompleted);
-        }
+        //    FriendsHandle.RejectInvite(ref options, null, OnRejectInviteCompleted);
+        //}
 
-        private void OnRejectInviteCompleted(ref RejectInviteCallbackInfo data)
-        {
-            //if (data == null)
-            //{
-            //    Debug.LogError("Friends (OnRejectInviteCompleted): data is null");
-            //    RejectInviteCallback?.Invoke(Result.InvalidState);
-            //    return;
-            //}
+        ///// <summary>
+        ///// TODO: Remove unreferenced code.
+        ///// </summary>
+        ///// <param name="data"></param>
+        //private void OnRejectInviteCompleted(ref RejectInviteCallbackInfo data)
+        //{
+        //    //if (data == null)
+        //    //{
+        //    //    Debug.LogError("Friends (OnRejectInviteCompleted): data is null");
+        //    //    RejectInviteCallback?.Invoke(Result.InvalidState);
+        //    //    return;
+        //    //}
 
-            if (data.ResultCode != Result.Success)
-            {
-                Debug.LogErrorFormat("Friends (OnRejectInviteCompleted): RejectInvite error: {0}", data.ResultCode);
-                RejectInviteCallback?.Invoke(data.ResultCode);
-                return;
-            }
+        //    if (data.ResultCode != Result.Success)
+        //    {
+        //        Debug.LogErrorFormat("Friends (OnRejectInviteCompleted): RejectInvite error: {0}", data.ResultCode);
+        //        RejectInviteCallback?.Invoke(data.ResultCode);
+        //        return;
+        //    }
 
-            Debug.LogFormat("Friends (OnRejectInviteCompleted): Reject Invite Complete for user id: {0}", data.LocalUserId);
-            RejectInviteCallback?.Invoke(Result.Success);
-        }
+        //    Debug.LogFormat("Friends (OnRejectInviteCompleted): Reject Invite Complete for user id: {0}", data.LocalUserId);
+        //    RejectInviteCallback?.Invoke(Result.Success);
+        //}
 
         /// <summary>(async) Query for friends.</summary>
         public void QueryFriends(OnFriendsCallback QueryFriendsCompleted)
@@ -774,7 +801,9 @@ namespace PlayEveryWare.EpicOnlineServices.Samples
         }
 
         //-------------------------------------------------------------------------
-        /// <summary>Hides Social Overlay</summary>
+        /// <summary>
+        /// Hides Social Overlay
+        /// </summary>
         public void HideFriendsOverlay(OnFriendsCallback HideFriendsOverlayCompleted)
         {
             HideFriendsOverlayCallback = HideFriendsOverlayCompleted;
