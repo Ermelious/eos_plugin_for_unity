@@ -208,8 +208,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
                 if (GUILayout.Button("Install"))
                 {
-                    string tmpDir = PackageFileUtility.GenerateTemporaryBuildPath();
-
+                    string tmpDir = FileUtility.GenerateTempDirectory();
                     try
                     {
                         UnzipFile(pathToZipFile, tmpDir);
@@ -229,7 +228,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
                             var entity = toConvert[i];
                             EditorUtility.DisplayProgressBar("Converting line endings", Path.GetFileName(entity),
                                 (float)i / toConvert.Count);
-                            PackageFileUtility.Dos2UnixLineEndings(entity);
+                            FileUtility.ConvertDosToUnixLineEndings(entity);
                         }
 
                         EditorUtility.ClearProgressBar();
@@ -248,7 +247,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
                                     PackageFileUtility.GetFileInfoMatchingPackageDescription(tmpDir,
                                         packageDescription);
                                 // This should be the correct directory
-                                var projectDir = PackageFileUtility.GetProjectPath();
+                                var projectDir = FileUtility.GetProjectPath();
                                 PackageFileUtility.CopyFilesToDirectory(projectDir, fileResults);
                             }
                         }
