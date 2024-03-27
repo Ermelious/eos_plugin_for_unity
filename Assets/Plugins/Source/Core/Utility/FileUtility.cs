@@ -33,6 +33,39 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
     public static class FileUtility
     {
         /// <summary>
+        /// Attempts to determine whether the given string represents a local path or a network one.
+        /// </summary>
+        /// <param name="uriString">The URI to evaluate.</param>
+        /// <returns>True if the string represents a local path, false otherwise.</returns>
+        public static bool IsLocalPath(string uriString)
+        {
+            Uri uri;
+
+            // Attempt to create a Uri instance from the string.
+            // This helps to accurately determine the kind of URI.
+            bool result = Uri.TryCreate(uriString, UriKind.Absolute, out uri);
+
+            // Check if the URI creation was successful and if it is a file URI.
+            if (result && uri.IsFile)
+            {
+                // Uri is a local file path
+                return true;
+            }
+
+            // Additionally, check if the string is a relative path,
+            // which also indicates a local path but doesn't have a URI scheme.
+            // This check is simplistic and might need adjustments based on your specific needs.
+            if (!result && (uriString.StartsWith("/") || uriString.StartsWith("./") || uriString.Contains(":\\") || uriString.StartsWith(@"\\")))
+            {
+                // The path seems to be a local path based on common patterns.
+                return true;
+            }
+
+            // Uri is not a local file path
+            return false;
+        }
+
+        /// <summary>
         /// Generates a unique and new temporary directory inside the Temporary Cache Path as determined by Unity,
         /// and returns the fully-qualified path to the newly created directory.
         /// </summary>

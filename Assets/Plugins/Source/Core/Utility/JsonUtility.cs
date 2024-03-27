@@ -22,8 +22,43 @@
 
 namespace PlayEveryWare.EpicOnlineServices.Utility
 {
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Schema;
+    using System;
+    using System.IO;
+
     public static class JsonUtility
     {
+        /// <summary>
+        /// Label used in Json to indicate the schema to use for validation purposes.
+        /// </summary>
+        private const string SchemaLabel = "$schema";
+
+        /// <summary>
+        /// The directory (relative to the project root) that contains the Json schemas for validation.
+        /// </summary>
+        private const string SchemaDirectory = "etc/config/schemas/";
+
+        /// <summary>
+        /// Determines if a given json object has a local schema that can be used for
+        /// validation purposes.
+        /// </summary>
+        /// <param name="obj">The json object.</param>
+        /// <returns>True if there is a local schema, false otherwise.</returns>
+        private static bool HasLocalSchema(JObject obj)
+        {
+            return (obj[SchemaLabel] != null && FileUtility.IsLocalPath(obj[SchemaLabel].ToString()));
+        }
+
+        public static string GetSchemaFilePath(string fullyQualifiedPath)
+        {
+            string schemaFileName = Path.GetFileName(fullyQualifiedPath)
+                .Replace("eos_plugin_", "")
+                .Replace("_config", "");
+
+            return Path.Combine(SchemaDirectory, schemaFileName);
+        }
         public static string ToJson(object obj, bool pretty = false)
         {
             return UnityEngine.JsonUtility.ToJson(obj, pretty);
@@ -38,5 +73,7 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
         {
             UnityEngine.JsonUtility.FromJsonOverwrite(json, obj);
         }
+
+
     }
 }    

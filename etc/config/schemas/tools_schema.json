@@ -1,0 +1,42 @@
+{
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "pathToEACIntegrityTool": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to integrity tool"
+  },
+  "pathToEACIntegrityConfig": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to EAC integrity configuration"
+  },
+  "pathToDefaultCertificate": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to default certificate"
+  },
+  "pathToEACPrivateKey": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to private EAC key"
+  },
+  "pathToEACCertificate": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to EAC Certificate"
+  },
+  "pathToEACSplashImage": {
+    "type": "string",
+    "is_uri": true,
+    "description": "Path to splash image to use with EAC"
+  },
+  "bootstrapperNameOverride": {
+    "type": "string",
+    "description": "Name to use for bootstrapper"
+  },
+  "useEAC": {
+    "type": "boolean",
+    "description": "Whether to use Easy-Anti-Cheat"
+  }
+}
