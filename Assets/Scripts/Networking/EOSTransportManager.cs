@@ -63,7 +63,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
         public const int MaxConnections = P2PInterface.MaxConnections;
 
         // Connection data, socket name must be unique within an individual remote peer.
-        public class Connection : IEquatable<Connection>
+        private class Connection
         {
             /// <summary>
             /// The ID of the socket for this Connection.
@@ -89,6 +89,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             /// If we are waiting on the remote side of the connection to confirm.
             /// </summary>
             public bool IsPendingOutgoing { get => IsValid && (OpenedOutgoing && !OpenedIncoming); }
+
             /// <summary>
             /// If the remote side of the connection is awaiting a connection accept response.
             /// </summary>
@@ -98,6 +99,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             /// If the connection has been opened on at least one end (local or remote).
             /// </summary>
             public bool IsHalfOpened { get => IsValid && (OpenedOutgoing || OpenedIncoming); }
+
             /// <summary>
             /// If the connection has been opened on both the local and remote ends.
             /// </summary>
@@ -120,10 +122,11 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             /// </summary>
             public bool IsValid = false;
 
-            /// <summary>
-            /// Creates a Connection with no initial information.
-            /// </summary>
-            public Connection() { }
+            ///// <summary>
+            ///// Creates a Connection with no initial information.
+            ///// TODO: Remove unreferenced code.
+            ///// </summary>
+            //public Connection() { }
 
             /// <summary>
             /// Creates a Connection with a given named socket.
@@ -138,44 +141,48 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             /// <returns>The index to use for the next message.</returns>
             public ushort GetNextMessageIndex() { return CurrentPacketIndex++; }
 
-            /// <summary>
-            /// Gets the hash code for the socket.
-            /// </summary>
-            /// <returns>The hash code for this Connection's socket.</returns>
-            public override int GetHashCode()
-            {
-                return SocketName.GetHashCode();
-            }
+            ///// <summary>
+            ///// Gets the hash code for the socket.
+            ///// TODO: Remove unreferenced code.
+            ///// </summary>
+            ///// <returns>The hash code for this Connection's socket.</returns>
+            //public override int GetHashCode()
+            //{
+            //    return SocketName.GetHashCode();
+            //}
 
-            /// <summary>
-            /// Checks if a given object is the same as this Connection.
-            /// </summary>
-            /// <param name="obj">The object to compare to.</param>
-            /// <returns><c>true</c> if the objects match, <c>false</c> if not.</returns>
-            public override bool Equals(object obj)
-            {
-                return Equals(obj as Connection);
-            }
+            ///// <summary>
+            ///// Checks if a given object is the same as this Connection.
+            ///// TODO: Remove unreferenced code.
+            ///// </summary>
+            ///// <param name="obj">The object to compare to.</param>
+            ///// <returns><c>true</c> if the objects match, <c>false</c> if not.</returns>
+            //public override bool Equals(object obj)
+            //{
+            //    return Equals(obj as Connection);
+            //}
 
-            /// <summary>
-            /// Checks if the given socket name matches this Connection.
-            /// </summary>
-            /// <param name="socketName">The name of the socket to check.</param>
-            /// <returns><c>true</c> if the socket name matches, <c>false</c> if not.</returns>
-            public bool Equals(string socketName)
-            {
-                return SocketName == socketName;
-            }
+            ///// <summary>
+            ///// Checks if the given socket name matches this Connection.
+            ///// TODO: Remove unreferenced code.
+            ///// </summary>
+            ///// <param name="socketName">The name of the socket to check.</param>
+            ///// <returns><c>true</c> if the socket name matches, <c>false</c> if not.</returns>
+            //public bool Equals(string socketName)
+            //{
+            //    return SocketName == socketName;
+            //}
 
-            /// <summary>
-            /// Checks if a given Connection object is the same as this Connection.
-            /// </summary>
-            /// <param name="connection">The Connection to compare to.</param>
-            /// <returns><c>true</c> if the Connections match, <c>false</c> if not.</returns>
-            public bool Equals(Connection connection)
-            {
-                return SocketName == connection.SocketName;
-            }
+            ///// <summary>
+            ///// Checks if a given Connection object is the same as this Connection.
+            ///// TODO: Remove unreferenced code.
+            ///// </summary>
+            ///// <param name="connection">The Connection to compare to.</param>
+            ///// <returns><c>true</c> if the Connections match, <c>false</c> if not.</returns>
+            //public bool Equals(Connection connection)
+            //{
+            //    return SocketName == connection.SocketName;
+            //}
 
             /// <summary>
             /// Provides a JSON formatted debug string for this connection.
@@ -257,6 +264,10 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 
         private const byte ConnectionConfirmationChannel = byte.MaxValue;
 
+        private ulong ConnectionRequestNotificationsId = 0;
+
+        private ulong ConnectionClosedNotificationsId = 0;
+
         [System.Diagnostics.Conditional("EOS_TRANSPORTMANAGER_DEBUG")]
         private void print(string msg)
         {
@@ -320,7 +331,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 #if !COM_UNITY_MODULE_NETCODE
             Debug.LogError("EOSTransportManager: Netcode for GameObjects package not installed");
 #endif
-
             Clear();
         }
 
@@ -350,12 +360,14 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 #if UNITY_EDITOR
         void OnPlayModeChanged(UnityEditor.PlayModeStateChange modeChange)
         {
-            if (modeChange == UnityEditor.PlayModeStateChange.ExitingPlayMode)
+            if (modeChange != UnityEditor.PlayModeStateChange.ExitingPlayMode)
             {
-                //prevent attempts to call native EOS code while exiting play mode, which crashes the editor
-                P2PHandle = null;
-                Shutdown();
+                return;
             }
+
+            //prevent attempts to call native EOS code while exiting play mode, which crashes the editor
+            P2PHandle = null;
+            Shutdown();
         }
 #endif
 
@@ -455,27 +467,25 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 #endif
         }
 
-        //
-        // Login / Logout Events (Start Here!)
-        //
+        ///// <summary>
+        ///// To be called after the local user is logged into EOS.
+        ///// TODO: Remove unreferenced code.
+        ///// </summary>
+        //public void OnLoggedIn()
+        //{
+        //    print($"EOSTransportManager.OnLoggedIn: Logged in with LocalUserId '{EOSManager.Instance.GetProductUserId()}' - Initializing EOSTransportManager.");
+        //    Initialize();
+        //}
 
-        /// <summary>
-        /// To be called after the local user is logged into EOS.
-        /// </summary>
-        public void OnLoggedIn()
-        {
-            print($"EOSTransportManager.OnLoggedIn: Logged in with LocalUserId '{EOSManager.Instance.GetProductUserId()}' - Initializing EOSTransportManager.");
-            Initialize();
-        }
-
-        /// <summary>
-        /// To be called before the local user is logged out of EOS.
-        /// </summary>
-        public void OnLoggedOut()
-        {
-            print($"EOSTransportManager.OnLoggedOut: Logging out with LocalUserId '{EOSManager.Instance.GetProductUserId()}' - Shutting down EOSTransportManager.");
-            Shutdown();
-        }
+        ///// <summary>
+        ///// To be called before the local user is logged out of EOS.
+        ///// TODO: Remove unreferenced code.
+        ///// </summary>
+        //public void OnLoggedOut()
+        //{
+        //    print($"EOSTransportManager.OnLoggedOut: Logging out with LocalUserId '{EOSManager.Instance.GetProductUserId()}' - Shutting down EOSTransportManager.");
+        //    Shutdown();
+        //}
 
         //
         // NAT Type Management
@@ -510,25 +520,26 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
         /// Retrieves the cached NAT type
         /// </summary>
         /// <returns>The previously cached NAT type.</returns>
-        public NATType GetNATType()
-        {
-            var options = new GetNATTypeOptions();
-            Result result = P2PHandle.GetNATType(ref options, out NATType natType);
+        // TODO: Remove unused function
+        //public NATType GetNATType()
+        //{
+        //    var options = new GetNATTypeOptions();
+        //    Result result = P2PHandle.GetNATType(ref options, out NATType natType);
 
-            if (result == Result.NotFound)
-            {
-                //Debug.LogWarningFormat( "EOSTransportManager.GetNATType: NATType not found." );
-                return NATType.Unknown;
-            }
+        //    if (result == Result.NotFound)
+        //    {
+        //        //Debug.LogWarningFormat( "EOSTransportManager.GetNATType: NATType not found." );
+        //        return NATType.Unknown;
+        //    }
 
-            if (result != Result.Success)
-            {
-                printWarning($"EOSTransportManager.GetNATType: Error while retrieving NATType, {result}.");
-                return NATType.Unknown;
-            }
-            print($"EOSTransportManager.GetNATType: Successfully retrieved NATType '{natType}'.");
-            return natType;
-        }
+        //    if (result != Result.Success)
+        //    {
+        //        printWarning($"EOSTransportManager.GetNATType: Error while retrieving NATType, {result}.");
+        //        return NATType.Unknown;
+        //    }
+        //    print($"EOSTransportManager.GetNATType: Successfully retrieved NATType '{natType}'.");
+        //    return natType;
+        //}
 
         //
         // Peer Connection Management
@@ -540,42 +551,49 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
         /// </summary>
         /// <param name="name">The socket name to check.</param>
         /// <returns><c>true</c> if the socket name is valid, <c>false</c> if not.</returns>
-        public static bool IsValidSocketName(string name)
+        private static bool IsValidSocketName(string name)
         {
-            return (name != null)
-                && (name.Length > 0)
-                && (name.Length <= 32)
-                && Regex.IsMatch(name, "^[a-zA-Z0-9]+$");
+            return name is { Length: > 0 and <= 32 }
+                   && Regex.IsMatch(name, "^[a-zA-Z0-9]+$");
         }
 
-        /// <summary>
-        /// The total number of connections active.
-        /// This includes pending connections (incoming or outgoing) and fully open connections.
-        /// </summary>
-        public int AllConnectionsCount { get => Connections.Values.Sum(connections => connections.Count); }
-        /// <summary>
-        /// The number of pending outgoing connections.
-        /// </summary>
-        public int PendingOutgoingConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsPendingOutgoing).Count()); }
-        /// <summary>
-        /// The number of pending outgoing connections.
-        /// </summary>
-        public int PendingIncomingConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsPendingIncoming).Count()); }
-        /// <summary>
-        /// The number of fully opened connections.
-        /// </summary>
-        public int FullyOpenConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsFullyOpened).Count()); }
+        
+        ///// <summary>
+        ///// The total number of connections active.
+        ///// This includes pending connections (incoming or outgoing) and fully open connections.
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        //public int AllConnectionsCount { get => Connections.Values.Sum(connections => connections.Count); }
+        
+        ///// <summary>
+        ///// The number of pending outgoing connections.
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        //public int PendingOutgoingConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsPendingOutgoing).Count()); }
+        
+        ///// <summary>
+        ///// The number of pending outgoing connections.
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        //public int PendingIncomingConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsPendingIncoming).Count()); }
+        
+        ///// <summary>
+        ///// The number of fully opened connections.
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        //public int FullyOpenConnectionsCount { get => Connections.Values.Sum(connections => connections.Where(connection => connection.IsFullyOpened).Count()); }
 
-        /// <summary>
-        /// Checks if a connection exists to a given remote user
-        /// </summary>
-        /// <param name="remoteUserId">The id of the remote user to check for.</param>
-        /// <param name="socketName">The name of the socket to check for connections on.</param>
-        /// <returns><c>true</c> if a connection exists, <c>false</c> if not.</returns>
-        public bool HasConnection(ProductUserId remoteUserId, string socketName)
-        {
-            return TryGetConnection(remoteUserId, socketName, out _);
-        }
+        ///// <summary>
+        ///// Checks if a connection exists to a given remote user
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        ///// <param name="remoteUserId">The id of the remote user to check for.</param>
+        ///// <param name="socketName">The name of the socket to check for connections on.</param>
+        ///// <returns><c>true</c> if a connection exists, <c>false</c> if not.</returns>
+        //public bool HasConnection(ProductUserId remoteUserId, string socketName)
+        //{
+        //    return TryGetConnection(remoteUserId, socketName, out _);
+        //}
 
         /// <summary>
         /// Finds an existing connection to a given remote user if it exists
@@ -584,7 +602,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
         /// <param name="socketName">The name of the socket to check for connections on.</param>
         /// <param name="connection">Will contain the connection if it exists, or will be set to null if no connection is found.</param>
         /// <returns><c>true</c> if a connection exists, <c>false</c> if not.</returns>
-        public bool TryGetConnection(ProductUserId remoteUserId, string socketName, out Connection connection)
+        private bool TryGetConnection(ProductUserId remoteUserId, string socketName, out Connection connection)
         {
             if (Connections.TryGetValue(remoteUserId, out List<Connection> connections))
                 connection = connections.Find(x => x.SocketName == socketName);
@@ -877,35 +895,36 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             return success;
         }
 
-        /// <summary>
-        /// Closes all open connections with a given socket name.
-        /// </summary>
-        /// <param name="socketName">The name of the socket to close all connections on.</param>
-        /// <param name="forceClose">If we should ignore any connection closure related errors (which will still be logged) and continue with connection cleanup locally (calling user callbacks, etc.)</param>
-        /// <returns><c>true</c> if all connections with the given socket name were successfully closed, <c>false</c> if one or more connections failed to close.</returns>
-        public bool CloseAllConnectionsWithSocketName(string socketName, bool forceClose = true)
-        {
-            // EOSTransportManager is not initialized?
-            if (IsInitialized == false)
-            {
-                printError("EOSTransportManager.CloseAllConnectionsWithSocketName: Failed to close remote peer connections - EOSTransportManager is uninitialized (has OnLoggedIn been called?).");
-                return false;
-            }
+        ///// <summary>
+        ///// Closes all open connections with a given socket name.
+        ///// TODO: Remove unreferenced property.
+        ///// </summary>
+        ///// <param name="socketName">The name of the socket to close all connections on.</param>
+        ///// <param name="forceClose">If we should ignore any connection closure related errors (which will still be logged) and continue with connection cleanup locally (calling user callbacks, etc.)</param>
+        ///// <returns><c>true</c> if all connections with the given socket name were successfully closed, <c>false</c> if one or more connections failed to close.</returns>
+        //public bool CloseAllConnectionsWithSocketName(string socketName, bool forceClose = true)
+        //{
+        //    // EOSTransportManager is not initialized?
+        //    if (IsInitialized == false)
+        //    {
+        //        printError("EOSTransportManager.CloseAllConnectionsWithSocketName: Failed to close remote peer connections - EOSTransportManager is uninitialized (has OnLoggedIn been called?).");
+        //        return false;
+        //    }
 
-            bool success = true;
+        //    bool success = true;
 
-            var remoteUserIdsCopy = Connections.Keys.ToList();
-            foreach (var remoteUserId in remoteUserIdsCopy)
-            {
-                bool foundAndRemoved = Connections.TryGetValue(remoteUserId, out List<Connection> connections)
-                                    && connections.Remove(new Connection(socketName));
+        //    var remoteUserIdsCopy = Connections.Keys.ToList();
+        //    foreach (var remoteUserId in remoteUserIdsCopy)
+        //    {
+        //        bool foundAndRemoved = Connections.TryGetValue(remoteUserId, out List<Connection> connections)
+        //                            && connections.Remove(new Connection(socketName));
 
-                if (foundAndRemoved == false)
-                    success = false;
-            }
+        //        if (foundAndRemoved == false)
+        //            success = false;
+        //    }
 
-            return success;
-        }
+        //    return success;
+        //}
 
         // Returns true if all connections with the given remote peer were successfully closed, else false (one or more connections failed to close)
         /// <summary>
@@ -1074,11 +1093,7 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
                     printError($"EOSTransportManager.SendPacket: Unable to send {options.Data.Count} byte packet to RemoteUserId '{options.RemoteUserId}' - Error result, {result}.");
                     return;
                 }
-
             }
-#if EOS_P2PMANAGER_DEBUG
-            Debug.LogFormat("EOSTransportManager.SendPacket: Successfully sent {0} byte packet to RemoteUserId '{1}'.", packet.Length, remoteUserId);
-#endif
         }
 
         /// <summary>
@@ -1269,8 +1284,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
         // (Internal) P2P Connection Event Handling
         //
 
-        private ulong ConnectionRequestNotificationsId = 0;
-
         private void SubscribeToConnectionRequestNotifications()
         {
             AddNotifyPeerConnectionRequestOptions options = new AddNotifyPeerConnectionRequestOptions()
@@ -1281,10 +1294,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 
             ConnectionRequestNotificationsId = P2PHandle.AddNotifyPeerConnectionRequest(ref options, null, OnConnectionRequestNotification);
         }
+        
         private void UnsubscribeFromConnectionRequestNotifications()
         {
             P2PHandle?.RemoveNotifyPeerConnectionRequest(ConnectionRequestNotificationsId);
         }
+        
         private void OnConnectionRequestNotification(ref OnIncomingConnectionRequestInfo data)
         {
             // Sanity check
@@ -1312,8 +1327,6 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
             }
         }
 
-        private ulong ConnectionClosedNotificationsId = 0;
-
         private void SubscribeToConnectionClosedNotifications()
         {
             AddNotifyPeerConnectionClosedOptions options = new AddNotifyPeerConnectionClosedOptions()
@@ -1324,10 +1337,12 @@ namespace PlayEveryWare.EpicOnlineServices.Samples.Network
 
             ConnectionClosedNotificationsId = P2PHandle.AddNotifyPeerConnectionClosed(ref options, null, OnConnectionClosedNotification);
         }
+        
         private void UnsubscribeFromConnectionClosedNotifications()
         {
             P2PHandle?.RemoveNotifyPeerConnectionClosed(ConnectionClosedNotificationsId);
         }
+        
         private void OnConnectionClosedNotification(ref OnRemoteConnectionClosedInfo data)
         {
             // Sanity check
