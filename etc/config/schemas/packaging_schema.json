@@ -1,0 +1,23 @@
+{
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "customBuildDirectoryPath": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Custom place to build the package in"
+    },
+    "pathToJSONPackageDescription": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Path to package description json file"
+    },
+    "pathToOutput": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Path to output the package to"
+    }
+
+  },
+  "required": ["customBuildDirectoryPath", "pathToJSONPackageDescription", "pathToOutput"]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "msbuildPath": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Fully-qualified path to the msbuild executable"
+    },
+    "makePath": {
+      "type": "string",
+      "is_uri": true,
+      "description": "Fully-qualified path to the make tool"
+    },
+    "msbuildDebug": {
+      "type": "boolean",
+      "description": "Build in debug mode (for msbuild)"
+    }
+
+  },
+  "required": ["msbuildPath", "makePath", "msbuildDebug"]
+}
