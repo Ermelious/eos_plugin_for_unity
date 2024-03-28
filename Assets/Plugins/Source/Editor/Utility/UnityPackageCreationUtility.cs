@@ -202,6 +202,39 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
                 default:
                     throw new ArgumentOutOfRangeException(nameof(packageType), packageType, null);
             }
+
+            // Validate the package inasmuch as possible.
+            ValidatePackage(packagingConfig.pathToOutput);
+        }
+
+        /// <summary>
+        /// Given the path to an exported package, run some basic checks and log warnings around any potential issues that can be determined.
+        /// </summary>
+        /// <param name="packagePath">Path to exported package.</param>
+        private static void ValidatePackage(string packagePath)
+        {
+            FileUtility.NormalizePath(ref packagePath);
+
+            // Get all entries.
+            var allEntries = Directory.GetFileSystemEntries(packagePath);
+
+            foreach (var entry in allEntries)
+            {
+                // Skip if the entry is a meta file.
+                if (File.Exists(entry) && Path.GetExtension(entry) == ".meta") { continue; }
+
+                // If the entry contains a "~", then it's special and doesn't need a meta file.
+                if (entry.Contains('~')) { continue; }
+
+                // If the file is in the root of the package directory, it doesn't need a meta file.
+                if (File.Exists(entry) && Path.GetDirectoryName(entry) == packagePath) { continue; }
+
+                // Otherwise - check to make sure that there is a meta file that corresponds to the file system entry.
+                if (!allEntries.Contains($"{entry}.meta"))
+                {
+                    Debug.LogWarning($"Item \"{entry}\" in output package directory \"{packagePath}\" does not have a corresponding .meta file. This will likely cause errors when the package is subsequently imported.");
+                }
+            }
         }
 
         // Helper coroutine for making the client package.
