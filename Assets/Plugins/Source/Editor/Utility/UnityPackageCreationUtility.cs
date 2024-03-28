@@ -234,9 +234,6 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
                 // If the entry contains a "~", then it's special and doesn't need a meta file.
                 if (entry.Contains('~')) { continue; }
 
-                // If the file is in the root of the package directory, it doesn't need a meta file.
-                if (File.Exists(entry) && Path.GetDirectoryName(entry) == packagePath) { continue; }
-
                 // Otherwise - check to make sure that there is a meta file that corresponds to the file system entry.
                 if (!allEntries.Contains($"{entry}.meta"))
                 {
