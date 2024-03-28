@@ -35,6 +35,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
     using Config;
     using EpicOnlineServices.Utility;
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Config = EpicOnlineServices.Config;
 
@@ -84,14 +85,14 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
             return packageDescription;
         }
 
-        private static void CopyFilesToPackageDirectory(string packageFolder,
-            List<FileInfoMatchingResult> fileInfoForFilesToCompress)
-        {
-            PackageFileUtility.CopyFilesToDirectory(
-                packageFolder,
-                fileInfoForFilesToCompress,
-                WriteVersionInfo);
-        }
+        //private static void CopyFilesToPackageDirectory(string packageFolder,
+        //    List<FileInfoMatchingResult> fileInfoForFilesToCompress)
+        //{
+        //    PackageFileUtility.CopyFilesToDirectory(
+        //        packageFolder,
+        //        fileInfoForFilesToCompress,
+        //        WriteVersionInfo);
+        //}
 
         private static void WriteVersionInfo(string destPath)
         {
@@ -118,32 +119,29 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
             }
         }
 
-        private static void CreateUPMTarball(string outputPath, string json_file)
+        public static async Task CreatePackage(PackageType packageType, IProgress<(int filesCopied, int totalFilesToCopy, long sizeOfCopiedFiles, long sizeToCopy)> progress, CancellationToken cancellationToken)
         {
-            string tempOutput = PackageFileUtility.GenerateTemporaryBuildPath();
-            
-            CreateUPM(tempOutput, json_file);
-            
-            if (!executorInstance)
-            {
-                executorInstance = UnityEngine.Object.FindObjectOfType<
-                    CoroutineExecutor>();
+            var packagingConfig = await Config.Get<PackagingConfig>();
 
-                if (!executorInstance)
-                {
-                    executorInstance = new GameObject(
-                        "CoroutineExecutor").AddComponent<CoroutineExecutor>();
-                }
+            FileUtility.CleanDirectory(packagingConfig.pathToOutput, true);
+
+            switch (packageType)
+            {
+                case PackageType.UPM:
+                    await CreateUPM(packagingConfig.pathToOutput, packagingConfig.pathToJSONPackageDescription, progress, cancellationToken);
+                    break;
+                case PackageType.UPMTarball:
+                    await CreateUPMTarball(packagingConfig.pathToOutput, packagingConfig.pathToJSONPackageDescription, progress, cancellationToken);
+                    break;
+                case PackageType.DotUnity: // Deprecated
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(packageType), packageType, null);
             }
 
-            executorInstance.StartCoroutine(
-                StartMakingTarball(
-                    tempOutput,
-                    outputPath
-                )
-            );
+            // Validate the package inasmuch as possible.
+            ValidatePackage(packagingConfig.pathToOutput);
         }
-        
+
         private static void CreateDotUnityPackage(string outputPath, string json_file,
             string packageName = "pew_eos_plugin.unitypackage")
         {
@@ -167,8 +165,18 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
             AssetDatabase.ExportPackage(toExport, gzipFilePathName, options);
         }
 
-        private static void CreateUPM(string outputPath, string json_file)
+        private static async Task CreateUPM(string outputPath, string json_file, IProgress<(int filesCopied, int totalFilesToCopy, long sizeOfCopiedFiles, long sizeToCopy)> progress, CancellationToken cancellationToken)
         {
+            /*
+             * NOTES:
+             *
+             * A preliminary step that can be automated is that the README.md, CHANGELOG.md, and LICENSE.md files
+             * are supposed to be exported to the root directory of the UPM, and they need to have .meta files,
+             * but these files are not stored within the Assets directory, so Unity doesn't generate them for us.
+             *
+             * Options to resolve this are myriad, but currently the process is manual.
+             *
+             */
             if (!File.Exists(json_file))
             {
                 Debug.LogError($"Could not read package description file \"{json_file}\", it does not exist.");
@@ -178,33 +186,33 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
 
             var filesToCopy = PackageFileUtility.GetFileInfoMatchingPackageDescription("./", packageDescription);
 
-            CopyFilesToPackageDirectory(outputPath, filesToCopy);
+            await PackageFileUtility.CopyFilesToDirectory(outputPath, filesToCopy, progress, cancellationToken);
         }
 
-        public static async Task CreatePackage(PackageType packageType, bool clean = true, bool ignoreGit = true)
+        private static async Task CreateUPMTarball(string outputPath, string json_file, IProgress<(int filesCopied, int totalFilesToCopy, long sizeOfCopiedFiles, long sizeToCopy)> progress, CancellationToken cancellationToken)
         {
-            var packagingConfig = await Config.Get<PackagingConfig>();
+            string tempOutput = FileUtility.GenerateTempDirectory();
 
-            if (clean)
+            await CreateUPM(tempOutput, json_file, progress, cancellationToken);
+
+            if (!executorInstance)
             {
-                FileUtility.CleanDirectory(packagingConfig.pathToOutput, ignoreGit);
+                executorInstance = UnityEngine.Object.FindObjectOfType<
+                    CoroutineExecutor>();
+
+                if (!executorInstance)
+                {
+                    executorInstance = new GameObject(
+                        "CoroutineExecutor").AddComponent<CoroutineExecutor>();
+                }
             }
 
-            switch (packageType)
-            {
-                case PackageType.UPM:
-                    CreateUPM(packagingConfig.pathToOutput, packagingConfig.pathToJSONPackageDescription);
-                    break;
-                case PackageType.UPMTarball:
-                    CreateUPMTarball(packagingConfig.pathToOutput, packagingConfig.pathToJSONPackageDescription);
-                    break;
-                case PackageType.DotUnity: // Deprecated
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(packageType), packageType, null);
-            }
-
-            // Validate the package inasmuch as possible.
-            ValidatePackage(packagingConfig.pathToOutput);
+            executorInstance.StartCoroutine(
+                StartMakingTarball(
+                    tempOutput,
+                    outputPath
+                )
+            );
         }
 
         /// <summary>

@@ -150,67 +150,68 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Build
             }
         }
 
-        /// <summary>
-        ///Does the exporting of the plugin to a UPM directory 
-        /// </summary>
-        public static void ExportPlugin()
-        {
-            // Get output directory
-            string OutputDirectory = GetOutputPath();
+        // TODO: Re-enable the following code once async for package creation is stable
+        ///// <summary>
+        /////Does the exporting of the plugin to a UPM directory 
+        ///// </summary>
+        //public static void ExportPlugin()
+        //{
+        //    // Get output directory
+        //    string OutputDirectory = GetOutputPath();
 
-            PackageType packageType = GetPackageType();
+        //    PackageType packageType = GetPackageType();
 
-            // if the output directory is not already fully qualified,
-            // then we will assume it's relative to the place the "Unity.exe" 
-            // command was executed.
-            if (!Path.IsPathFullyQualified(OutputDirectory))
-            {
-                OutputDirectory = Path.GetFullPath(
-                    Path.Join(
-                        Directory.GetCurrentDirectory(),
-                        OutputDirectory));
-            }
+        //    // if the output directory is not already fully qualified,
+        //    // then we will assume it's relative to the place the "Unity.exe" 
+        //    // command was executed.
+        //    if (!Path.IsPathFullyQualified(OutputDirectory))
+        //    {
+        //        OutputDirectory = Path.GetFullPath(
+        //            Path.Join(
+        //                Directory.GetCurrentDirectory(),
+        //                OutputDirectory));
+        //    }
 
-            string jsonFile = Path.Combine(
-                Application.dataPath,
-                "..",
-                GetDefaultJSONPackageFile(PackageType.UPMTarBall));
+        //    string jsonFile = Path.Combine(
+        //        Application.dataPath,
+        //        "..",
+        //        GetDefaultJSONPackageFile(PackageType.UPMTarBall));
 
-            // Validate file paths
-            if (!File.Exists(jsonFile))
-            {
-                ExportError("JSON file \"" + jsonFile + "\" does not appear to exist.");
-            }
+        //    // Validate file paths
+        //    if (!File.Exists(jsonFile))
+        //    {
+        //        ExportError("JSON file \"" + jsonFile + "\" does not appear to exist.");
+        //    }
 
-            // If the output directory does not exist, try and create it.
-            if (!Directory.Exists(OutputDirectory))
-            {
-                Directory.CreateDirectory(OutputDirectory);
-                Debug.LogWarning("Output Directory: \"" + OutputDirectory + "\" created.");
-            }
-            else
-            {
-                Clean();
-            }
+        //    // If the output directory does not exist, try and create it.
+        //    if (!Directory.Exists(OutputDirectory))
+        //    {
+        //        Directory.CreateDirectory(OutputDirectory);
+        //        Debug.LogWarning("Output Directory: \"" + OutputDirectory + "\" created.");
+        //    }
+        //    else
+        //    {
+        //        Clean();
+        //    }
 
-            // Create package
-            // TODO: Join build systems - note the duplicate existence of the PackageType enum.
+        //    // Create package
+        //    // TODO: Join build systems - note the duplicate existence of the PackageType enum.
 
-            switch (packageType)
-            {
-                case PackageType.UPMTarBall:
-                    UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.UPMTarball, true, true).Wait();
-                    break;
-                case PackageType.DotUnity:
-                    UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.DotUnity, true, true).Wait();
-                    break;
-                case PackageType.UPMDirectory:
-                default:
-                    UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.UPM, true, true).Wait();
-                    break;
+        //    switch (packageType)
+        //    {
+        //        case PackageType.UPMTarBall:
+        //            UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.UPMTarball, true, true).Wait();
+        //            break;
+        //        case PackageType.DotUnity:
+        //            UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.DotUnity, true, true).Wait();
+        //            break;
+        //        case PackageType.UPMDirectory:
+        //        default:
+        //            UnityPackageCreationUtility.CreatePackage(UnityPackageCreationUtility.PackageType.UPM, true, true).Wait();
+        //            break;
 
-            }
-        }
+        //    }
+        //}
 
         /// <summary>
         /// Helper method to log and throw fatal errors that may occur during plugin export.

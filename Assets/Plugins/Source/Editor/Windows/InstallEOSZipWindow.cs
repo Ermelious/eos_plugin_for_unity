@@ -208,7 +208,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
                 if (GUILayout.Button("Install"))
                 {
-                    string tmpDir = PackageFileUtility.GenerateTemporaryBuildPath();
+                    string tmpDir = FileUtility.GenerateTempDirectory();
 
                     try
                     {
@@ -234,24 +234,24 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
                         EditorUtility.ClearProgressBar();
 
+                        // TODO: Re-enable when async package creation is stable
+                        //foreach (var platformImportInfo in importInfoList.platformImportInfoList)
+                        //{
+                        //    if (platformImportInfo.isGettingImported)
+                        //    {
+                        //        var JSONPackageDescription =
+                        //            File.ReadAllText(pathToImportDescDirectory + platformImportInfo.descPath);
+                        //        var packageDescription =
+                        //            JsonUtility.FromJson<PackageDescription>(JSONPackageDescription);
 
-                        foreach (var platformImportInfo in importInfoList.platformImportInfoList)
-                        {
-                            if (platformImportInfo.isGettingImported)
-                            {
-                                var JSONPackageDescription =
-                                    File.ReadAllText(pathToImportDescDirectory + platformImportInfo.descPath);
-                                var packageDescription =
-                                    JsonUtility.FromJson<PackageDescription>(JSONPackageDescription);
-
-                                var fileResults =
-                                    PackageFileUtility.GetFileInfoMatchingPackageDescription(tmpDir,
-                                        packageDescription);
-                                // This should be the correct directory
-                                var projectDir = PackageFileUtility.GetProjectPath();
-                                PackageFileUtility.CopyFilesToDirectory(projectDir, fileResults);
-                            }
-                        }
+                        //        var fileResults =
+                        //            PackageFileUtility.GetFileInfoMatchingPackageDescription(tmpDir,
+                        //                packageDescription);
+                        //        // This should be the correct directory
+                        //        var projectDir = PackageFileUtility.GetProjectPath();
+                        //        PackageFileUtility.CopyFilesToDirectory(projectDir, fileResults);
+                        //    }
+                        //}
 
                     }
                     finally
