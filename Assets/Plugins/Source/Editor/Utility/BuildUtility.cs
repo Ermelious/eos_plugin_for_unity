@@ -100,10 +100,6 @@ namespace PlayEveryWare.EpicOnlineServices.Build
                 }
                 else
                 {
-                    // Create the config file (even though it will be empty):
-                    var configType = PlatformManager.GetConfigType();
-                    var config = Config.Get<typeof(configType)>();
-
                     throw new BuildFailedException($"Config file for target \"{target}\" (\"{configFilePath}\") was not found.");
                 }
             }
