@@ -54,7 +54,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
         [RetainPreference("IgnoreGitWhenCleaning")]
         private bool _ignoreGitWhenCleaning = true;
 
-        private PackagingConfig packagingConfig;
+        private PackagingConfig _packagingConfig;
 
         private Task _createPackageTask;
         private bool _packageCreated = false;
@@ -67,15 +67,31 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
         protected override async Task AsyncSetup()
         {
-            packagingConfig = await Config.Get<PackagingConfig>();
+            _packagingConfig = await Config.Get<PackagingConfig>();
 
-            if (string.IsNullOrEmpty(packagingConfig.pathToJSONPackageDescription))
+            if (string.IsNullOrEmpty(_packagingConfig.pathToJSONPackageDescription))
             {
-                packagingConfig.pathToJSONPackageDescription =
+                _packagingConfig.pathToJSONPackageDescription =
                     Path.Combine(FileUtility.GetProjectPath(), DefaultPackageDescription);
-                await packagingConfig.WriteAsync();
+                await _packagingConfig.WriteAsync();
             }
             await base.AsyncSetup();
+        }
+
+        protected static bool SelectOutputDirectory(ref string path)
+        {
+            string selectedPath = EditorUtility.OpenFolderPanel(
+                "Pick output directory",
+                Path.GetDirectoryName(FileUtility.GetProjectPath()),
+                "");
+
+            if (string.IsNullOrEmpty(selectedPath) || !Directory.Exists(selectedPath))
+            {
+                return false;
+            }
+
+            path = selectedPath;
+            return true;
         }
 
         protected override void RenderWindow()
@@ -84,24 +100,17 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(10f);
-            var outputPath = packagingConfig.pathToOutput;
+            var outputPath = _packagingConfig.pathToOutput;
             GUIEditorUtility.AssigningTextField("Output Path", ref outputPath);
             if (GUILayout.Button("Select", GUILayout.MaxWidth(100)))
             {
-                var outputDir = EditorUtility.OpenFolderPanel("Pick Output Directory", "", "");
-                if (!string.IsNullOrWhiteSpace(outputDir))
+                if (SelectOutputDirectory(ref outputPath))
                 {
-                    outputPath = outputDir;
+                    _packagingConfig.pathToOutput = outputPath;
+                    _packagingConfig.Write();
                 }
             }
 
-            if (packagingConfig.pathToOutput != outputPath)
-            {
-                packagingConfig.pathToOutput = outputPath;
-                packagingConfig.Write(true, false);
-            }
-
-            
             GUILayout.Space(10f);
             GUILayout.EndHorizontal();
 
@@ -155,7 +164,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
             GUIEditorUtility.AssigningBoolField("Don't clean .git directory", ref _ignoreGitWhenCleaning, 200f, "" +
                 "When cleaning the output target directory, don't delete any .git files.");
 
-            var jsonPackageFile = packagingConfig.pathToJSONPackageDescription;
+            var jsonPackageFile = _packagingConfig.pathToJSONPackageDescription;
 
             GUILayout.BeginHorizontal();
             GUIEditorUtility.AssigningTextField("JSON Description Path", ref jsonPackageFile);
@@ -169,10 +178,10 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
             }
             GUILayout.EndHorizontal();
 
-            if (jsonPackageFile != packagingConfig.pathToJSONPackageDescription)
+            if (jsonPackageFile != _packagingConfig.pathToJSONPackageDescription)
             {
-                packagingConfig.pathToJSONPackageDescription = jsonPackageFile;
-                packagingConfig.Write(true, false);
+                _packagingConfig.pathToJSONPackageDescription = jsonPackageFile;
+                _packagingConfig.Write(true, false);
             }
 
             GUILayout.EndVertical();
@@ -181,6 +190,25 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
         private void StartCreatePackageAsync(UPMUtility.PackageType type, bool clean, bool ignoreGit)
         {
+            string outputPath = _packagingConfig.pathToOutput;
+
+            // if the output path is empty or doesn't exist, prompt for the user to select one
+            if (string.IsNullOrEmpty(outputPath) || !Directory.Exists(outputPath))
+            {
+                if (SelectOutputDirectory(ref outputPath))
+                {
+                    _packagingConfig.pathToOutput = outputPath;
+                    _packagingConfig.Write();
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Package Export Canceled",
+                        "An output directory was not selected, so package export has been canceled.",
+                        "ok");
+                    return;
+                }
+            }
+
             EditorApplication.update += CheckForPackageCreated;
             _createPackageTask = UPMUtility.CreatePackage(type, clean, ignoreGit);
         }
@@ -194,7 +222,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 
                 // TODO: Add option to open directory.
                 EditorUtility.DisplayDialog("Package Created",
-                    $"Package was successfully created at \"{packagingConfig.pathToOutput}\".",
+                    $"Package was successfully created at \"{_packagingConfig.pathToOutput}\".",
                     "Okay");
             }
         }
