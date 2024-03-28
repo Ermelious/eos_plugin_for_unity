@@ -32,6 +32,8 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 {
     using Config;
     using EpicOnlineServices.Utility;
+    using NUnit.Framework;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
     using Utility;
@@ -53,6 +55,9 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
         private bool _ignoreGitWhenCleaning = true;
 
         private PackagingConfig packagingConfig;
+
+        private Task _createPackageTask;
+        private bool _packageCreated = false;
 
         [MenuItem("Tools/EOS Plugin/Create Package")]
         public static void ShowWindow()
@@ -103,38 +108,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
             _showAdvanced = EditorGUILayout.Foldout(_showAdvanced, "Advanced");
             if (_showAdvanced)
             {
-                GUILayout.Space(10f);
-
-                GUILayout.BeginVertical();
-                GUIEditorUtility.AssigningBoolField("Clean target directory", ref _cleanBeforeCreate, 200f,
-                    "Cleans the output target directory before creating the package.");
-
-                GUIEditorUtility.AssigningBoolField("Don't clean .git directory", ref _ignoreGitWhenCleaning, 200f, "" +
-                    "When cleaning the output target directory, don't delete any .git files.");
-
-                var jsonPackageFile = packagingConfig.pathToJSONPackageDescription;
-
-                GUILayout.BeginHorizontal();
-                GUIEditorUtility.AssigningTextField("JSON Description Path", ref jsonPackageFile);
-                if (GUILayout.Button("Select", GUILayout.MaxWidth(100)))
-                {
-                    var jsonFile = EditorUtility.OpenFilePanel("Pick JSON Package Description", "", "json");
-                    if (!string.IsNullOrWhiteSpace(jsonFile))
-                    {
-                        jsonPackageFile = jsonFile;
-                    }
-                }
-                GUILayout.EndHorizontal();
-
-                if (jsonPackageFile != packagingConfig.pathToJSONPackageDescription)
-                {
-                    packagingConfig.pathToJSONPackageDescription = jsonPackageFile;
-                    packagingConfig.Write(true, false);
-                }
-
-                GUILayout.EndVertical();
-                GUILayout.Space(10f);
-                
+                RenderAdvanced();
             }
 
             GUILayout.Space(20f);
@@ -148,36 +122,68 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
                 GUI.enabled = _createPackageTask.IsCompleted != false;
             }
 
-            if (GUILayout.Button("Export UPM Directory", GUILayout.MaxWidth(200)))
+            List<(string buttonLabel, UPMUtility.PackageType packageToMake, bool enableButton)> buttons = new()
             {
-                EditorApplication.update += CheckForPackageCreated;
-                _createPackageTask = UPMUtility.CreatePackage(UPMUtility.PackageType.UPM, _cleanBeforeCreate, _ignoreGitWhenCleaning);
-                OnPackageCreated(packagingConfig.pathToOutput);
-            }
+                ("UPM Directory", UPMUtility.PackageType.UPM,        true),
+                ("UPM Tarball",   UPMUtility.PackageType.UPMTarball, true),
+                (".unitypackage", UPMUtility.PackageType.DotUnity,   false)
+            };
 
-            if (GUILayout.Button("Create UPM Tarball", GUILayout.MaxWidth(200)))
+            foreach ((string buttonLabel, UPMUtility.PackageType packageToMake, bool enabled) in buttons)
             {
-                EditorApplication.update += CheckForPackageCreated;
-                _createPackageTask = UPMUtility.CreatePackage(UPMUtility.PackageType.UPMTarball, _cleanBeforeCreate, _ignoreGitWhenCleaning);
-                OnPackageCreated(packagingConfig.pathToOutput);
+                GUI.enabled = enabled;
+                if (GUILayout.Button($"Export {buttonLabel}", GUILayout.MaxWidth(200)))
+                {
+                    StartCreatePackageAsync(packageToMake, _cleanBeforeCreate, _ignoreGitWhenCleaning);
+                }
+                GUI.enabled = true;
             }
-
-            GUI.enabled = false; // Disable UPM .unitypackage for the time being.
-            if (GUILayout.Button("Create .unitypackage", GUILayout.MaxWidth(200)))
-            {
-                EditorApplication.update += CheckForPackageCreated;
-                _createPackageTask = UPMUtility.CreatePackage(UPMUtility.PackageType.DotUnity, _cleanBeforeCreate, _ignoreGitWhenCleaning);
-            }
-
-            GUI.enabled = true;
 
             GUILayout.FlexibleSpace();
             GUILayout.Space(20f);
             GUILayout.EndHorizontal();
         }
 
-        private Task _createPackageTask;
-        private bool _packageCreated = false;
+        protected void RenderAdvanced()
+        {
+            GUILayout.Space(10f);
+
+            GUILayout.BeginVertical();
+            GUIEditorUtility.AssigningBoolField("Clean target directory", ref _cleanBeforeCreate, 200f,
+                "Cleans the output target directory before creating the package.");
+
+            GUIEditorUtility.AssigningBoolField("Don't clean .git directory", ref _ignoreGitWhenCleaning, 200f, "" +
+                "When cleaning the output target directory, don't delete any .git files.");
+
+            var jsonPackageFile = packagingConfig.pathToJSONPackageDescription;
+
+            GUILayout.BeginHorizontal();
+            GUIEditorUtility.AssigningTextField("JSON Description Path", ref jsonPackageFile);
+            if (GUILayout.Button("Select", GUILayout.MaxWidth(100)))
+            {
+                var jsonFile = EditorUtility.OpenFilePanel("Pick JSON Package Description", "", "json");
+                if (!string.IsNullOrWhiteSpace(jsonFile))
+                {
+                    jsonPackageFile = jsonFile;
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            if (jsonPackageFile != packagingConfig.pathToJSONPackageDescription)
+            {
+                packagingConfig.pathToJSONPackageDescription = jsonPackageFile;
+                packagingConfig.Write(true, false);
+            }
+
+            GUILayout.EndVertical();
+            GUILayout.Space(10f);
+        }
+
+        private void StartCreatePackageAsync(UPMUtility.PackageType type, bool clean, bool ignoreGit)
+        {
+            EditorApplication.update += CheckForPackageCreated;
+            _createPackageTask = UPMUtility.CreatePackage(type, clean, ignoreGit);
+        }
 
         private void CheckForPackageCreated()
         {
@@ -185,30 +191,12 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
             {
                 _packageCreated = true;
                 EditorApplication.update -= CheckForPackageCreated;
+
+                // TODO: Add option to open directory.
+                EditorUtility.DisplayDialog("Package Created",
+                    $"Package was successfully created at \"{packagingConfig.pathToOutput}\".",
+                    "Okay");
             }
-        }
-
-        private void OnPackageCreated(string outputPath)
-        {
-            EditorUtility.DisplayDialog(
-                "Package created",
-                $"Package was successfully created at \"{outputPath}\"",
-                "Ok");
-        }
-
-        private bool OnEmptyOutputPath(ref string output)
-        {
-            // Display dialog saying no output path was provided, and offering to default to the 'Build' directory.
-            if (EditorUtility.DisplayDialog(
-                    "Empty output path",
-                    $"No output path was provided, do you want to use {DEFAULT_OUTPUT_DIRECTORY}?",
-                    "Yes", "Cancel"))
-            {
-                output = DEFAULT_OUTPUT_DIRECTORY;
-                return true;
-            }
-
-            return false;
         }
     }
 }
