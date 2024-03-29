@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 PlayEveryWare
+ * Copyright (c) 2024 PlayEveryWare
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,35 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-namespace PlayEveryWare.EpicOnlineServices.Samples
+
+namespace PlayEveryWare.EpicOnlineServices.Extensions
 {
-    using System;
-    using UnityEngine.UI;
+    using System.Collections.Generic;
 
-    public static class DropdownExtensions
+    public static class IListExtensions
     {
-        public static bool TryGetSelectedEnum<T>(this Dropdown dropdown, out T selected) where T : struct, Enum
+        public static void Shuffle<T>(this IList<T> list)
         {
-            var selectedString = dropdown.options[dropdown.value].text;
-
-            UnityEngine.Debug.Log($"Selected string is: \"{selectedString}\".");
-            if (Enum.TryParse(selectedString, out T value))
+            System.Random rng = new();
+            int n = list.Count;
+            while (n > 1)
             {
-                selected = value;
-                return true;
+                n--;
+                int k = rng.Next(n + 1);
+                (list[k], list[n]) = (list[n], list[k]);
             }
-
-            selected = default;
-            return false;
-        }
-
-        public static T GetSelectedEnum<T>(this Dropdown dropdown) where T : struct, Enum
-        {
-            if (TryGetSelectedEnum(dropdown, out T typeSelected))
-            {
-                return typeSelected;
-            }
-            return default;
         }
     }
 }

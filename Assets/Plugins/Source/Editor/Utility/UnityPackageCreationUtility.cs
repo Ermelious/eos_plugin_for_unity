@@ -75,15 +75,6 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
         /// This is used in order to use StartCoroutine from a static context.
         /// </summary>
         public static CoroutineExecutor executorInstance;
-        
-        private static PackageDescription ReadPackageDescription(string pathToJSONPackageDescription)
-        {
-            var JSONPackageDescription = FileUtility.ReadAllText(pathToJSONPackageDescription);
-
-            var packageDescription = JsonUtility.FromJson<PackageDescription>(JSONPackageDescription);
-
-            return packageDescription;
-        }
 
         public struct CreatePackageProgressInfo
         {
@@ -116,29 +107,6 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
             ValidatePackage(packagingConfig.pathToOutput);
         }
 
-        private static void CreateDotUnityPackage(string outputPath, string json_file,
-            string packageName = "pew_eos_plugin.unitypackage")
-        {
-            var JSONPackageDescription = File.ReadAllText(json_file);
-
-            var packageDescription = JsonUtility.FromJson<PackageDescription>(JSONPackageDescription);
-
-            // Transform PackageDescription into a list of actual files that can be
-            // copied to a directory that can be zipped 
-            string gzipFilePathName = Path.Combine(outputPath, packageName);
-
-            List<string> filesToCompress =
-                PackageFileUtility.GetFilePathsMatchingPackageDescription("./", packageDescription);
-
-            var toExport = filesToCompress.Where(
-                (path) => { return !path.Contains(".meta"); }
-            ).ToArray();
-
-            var options = ExportPackageOptions.Interactive;
-
-            AssetDatabase.ExportPackage(toExport, gzipFilePathName, options);
-        }
-
         private static async Task CreateUPM(string outputPath, string json_file, IProgress<CreatePackageProgressInfo> progress, CancellationToken cancellationToken)
         {
             /*
@@ -159,35 +127,36 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
 
             var packageDescription = JsonUtility.FromJsonFile<PackageDescription>(json_file);
 
-            var filesToCopy = PackageFileUtility.GetFileInfoMatchingPackageDescription("./", packageDescription);
+            var filesToCopy = PackageFileUtility.FindPackageFiles("./", packageDescription);
 
             await PackageFileUtility.CopyFilesToDirectory(outputPath, filesToCopy, progress, cancellationToken);
         }
 
         private static async Task CreateUPMTarball(string outputPath, string json_file, IProgress<CreatePackageProgressInfo> progress, CancellationToken cancellationToken)
         {
-            string tempOutput = FileUtility.GenerateTempDirectory();
-
-            await CreateUPM(tempOutput, json_file, progress, cancellationToken);
-
-            if (!executorInstance)
+            if (FileUtility.TryGetTempDirectory(out string tempOutput))
             {
-                executorInstance = UnityEngine.Object.FindObjectOfType<
-                    CoroutineExecutor>();
+                await CreateUPM(tempOutput, json_file, progress, cancellationToken);
 
                 if (!executorInstance)
                 {
-                    executorInstance = new GameObject(
-                        "CoroutineExecutor").AddComponent<CoroutineExecutor>();
-                }
-            }
+                    executorInstance = UnityEngine.Object.FindObjectOfType<
+                        CoroutineExecutor>();
 
-            executorInstance.StartCoroutine(
-                StartMakingTarball(
-                    tempOutput,
-                    outputPath
-                )
-            );
+                    if (!executorInstance)
+                    {
+                        executorInstance = new GameObject(
+                            "CoroutineExecutor").AddComponent<CoroutineExecutor>();
+                    }
+                }
+
+                executorInstance.StartCoroutine(
+                    StartMakingTarball(
+                        tempOutput,
+                        outputPath
+                    )
+                );
+            }
         }
 
         /// <summary>
