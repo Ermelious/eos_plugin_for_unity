@@ -245,7 +245,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
                                     JsonUtility.FromJson<PackageDescription>(JSONPackageDescription);
 
                                 var fileResults =
-                                    PackageFileUtility.GetFileInfoMatchingPackageDescription(tmpDir,
+                                    PackageFileUtility.FindPackageFiles(tmpDir,
                                         packageDescription);
                                 // This should be the correct directory
                                 var projectDir = FileUtility.GetProjectPath();

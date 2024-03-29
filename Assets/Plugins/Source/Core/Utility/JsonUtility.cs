@@ -22,8 +22,38 @@
 
 namespace PlayEveryWare.EpicOnlineServices.Utility
 {
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using UnityEngine;
+
     public static class JsonUtility
     {
+        /// <summary>
+        /// Validates that a given json string is valid json. Will log descriptive errors if the JSON is invalid.
+        /// </summary>
+        /// <param name="json">The json string.</param>
+        /// <returns>True if the JSON is valid, false otherwise.</returns>
+        private static bool IsValidJson(string json)
+        {
+            bool isValid = false;
+            try
+            {
+                var token = JToken.Parse(json);
+                isValid = true;
+            }
+            catch (JsonReaderException ex)
+            {
+                Debug.LogError($"Invalid JSON: {ex.Message}");
+            }
+            catch (Exception ex) // Other errors
+            {
+                Debug.LogError($"An error occurred: {ex.Message}");
+            }
+
+            return isValid;
+        }
+
         public static string ToJson(object obj, bool pretty = false)
         {
             return UnityEngine.JsonUtility.ToJson(obj, pretty);
@@ -31,12 +61,15 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
 
         public static T FromJson<T>(string json)
         {
-            return UnityEngine.JsonUtility.FromJson<T>(json);
+            return IsValidJson(json) ? UnityEngine.JsonUtility.FromJson<T>(json) : default;
         }
 
         public static void FromJsonOverwrite(string json, object obj)
         {
-            UnityEngine.JsonUtility.FromJsonOverwrite(json, obj);
+            if (IsValidJson(json))
+            {
+                UnityEngine.JsonUtility.FromJsonOverwrite(json, obj);
+            }
         }
     }
 }    
