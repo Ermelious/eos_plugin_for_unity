@@ -130,14 +130,9 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
         /// <returns>The deserialized object.</returns>
         public static T FromJson<T>(string json)
         {
-            if (IsJsonValid(json))
-            {
-                return UnityEngine.JsonUtility.FromJson<T>(json);
-            }
-            else
-            {
-                return default;
-            }
+            ValidateJson(json);
+
+            return UnityEngine.JsonUtility.FromJson<T>(json);
         }
 
         /// <summary>
