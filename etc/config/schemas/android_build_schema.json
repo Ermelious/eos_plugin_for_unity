@@ -4,6 +4,7 @@
   "properties": {
     "DynamicallyLinkEOSLibrary": {
       "type": "boolean",
+      "default": false,
       "description": "Whether to dynamically link the EOS library"
     }
   },

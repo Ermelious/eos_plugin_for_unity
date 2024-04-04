@@ -37,6 +37,8 @@
   },
   "useEAC": {
     "type": "boolean",
+    "default": false,
     "description": "Whether to use Easy-Anti-Cheat"
-  }
+  },
+  "required":["pathToEACIntegrityTool", "pathToEACIntegrityConfig", "pathToDefaultCertificate", "pathToEACPrivateKey", "pathToEACCertificate", "pathToEACSplashImage", "bootstrapperNameOverride", "useEAC"]
 }

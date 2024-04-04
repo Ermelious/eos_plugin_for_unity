@@ -3,6 +3,8 @@
   "type": "object",
   "useAppVersionAsProductVersion": {
     "type": "boolean",
+    "default": true,
     "description": "Use the application version as the product version in EOS"
-  }
+  },
+  "required": ["useAppVersionAsProductVersion"]
 }

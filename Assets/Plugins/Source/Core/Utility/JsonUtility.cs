@@ -24,9 +24,9 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
 {
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json.Schema;
     using System;
     using System.IO;
+    using UnityEngine;
 
     public static class JsonUtility
     {
@@ -46,7 +46,7 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
         /// </summary>
         /// <param name="obj">The json object.</param>
         /// <returns>True if there is a local schema, false otherwise.</returns>
-        private static bool HasLocalSchema(JObject obj)
+        private static bool HasLocalSchema(JToken obj)
         {
             return (obj[SchemaLabel] != null && FileUtility.IsLocalPath(obj[SchemaLabel].ToString()));
         }
@@ -59,21 +59,108 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
 
             return Path.Combine(SchemaDirectory, schemaFileName);
         }
+
+        /// <summary>
+        /// Attempts to parse the given JSON string. If problems are encountered, an error will be logged and the exception will continue.
+        /// </summary>
+        /// <param name="json">The JSON string to validate.</param>
+        private static void ValidateJson(string json)
+        {
+            try
+            {
+                var parsedToken = JToken.Parse(json);
+                
+                // Check to see if the json identifies a schema to use, and if that schema is local
+                if (HasLocalSchema(parsedToken))
+                {
+                }
+            }
+            catch (JsonReaderException ex)
+            {
+                Debug.LogError($"Invalid JSON: {ex.Message}");
+#if UNITY_EDITOR
+                throw;
+#endif
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"An error occurred: {ex.Message}");
+#if UNITY_EDITOR
+                throw;
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Determines if the given json string is valid json or not. If JSON is invalid, errors will be logged, but exceptions will be suppressed.
+        /// </summary>
+        /// <param name="json">The JSON string to validate.</param>
+        /// <returns>True if json is valid, false otherwise.</returns>
+        private static bool IsJsonValid(string json)
+        {
+            try
+            {
+                ValidateJson(json);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Convert an object into JSON.
+        /// </summary>
+        /// <param name="obj">The object to serialize into JSON.</param>
+        /// <param name="pretty">Whether to make the JSON pretty.</param>
+        /// <returns>String representation of the given object serialized.</returns>
         public static string ToJson(object obj, bool pretty = false)
         {
-            return UnityEngine.JsonUtility.ToJson(obj, pretty);
+            return JsonConvert.SerializeObject(obj, pretty ? Formatting.Indented : Formatting.None);
         }
 
+        /// <summary>
+        /// Return an object deserialized from the given json string. If json is invalid, errors will
+        /// be logged, and an object with default values will be returned.
+        /// </summary>
+        /// <typeparam name="T">The type of object to deserialize.</typeparam>
+        /// <param name="json">The JSON string.</param>
+        /// <returns>The deserialized object.</returns>
         public static T FromJson<T>(string json)
         {
-            return UnityEngine.JsonUtility.FromJson<T>(json);
+            ValidateJson(json);
+            return JsonConvert.DeserializeObject<T>(json);
         }
 
+        /// <summary>
+        /// Return an object deserialized from the given json file.
+        /// </summary>
+        /// <typeparam name="T">The type of object to deserialize.</typeparam>
+        /// <param name="filepath">The path to the JSON file.</param>
+        /// <returns>The deserialized object.</returns>
+        public static T FromJsonFile<T>(string filepath)
+        {
+            string json = FileUtility.ReadAllText(filepath);
+            return FromJson<T>(json);
+        }
+
+        /// <summary>
+        /// Overwrites the given json object with values deserialized from the given json string.
+        /// If json is invalid, errors will be logged and no change will be made to the object.
+        /// </summary>
+        /// <param name="json">The string of json to deserialize values from.</param>
+        /// <param name="obj">The object to change the values of.</param>
         public static void FromJsonOverwrite(string json, object obj)
         {
-            UnityEngine.JsonUtility.FromJsonOverwrite(json, obj);
+            if (IsJsonValid(json))
+            {
+                UnityEngine.JsonUtility.FromJsonOverwrite(json, obj);
+            }
+            else
+            {
+                Debug.LogWarning($"Object's values were not set using the json given, because the json was invalid.");
+            }
         }
-
-
     }
 }    
