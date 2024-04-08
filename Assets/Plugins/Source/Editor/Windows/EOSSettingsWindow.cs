@@ -40,6 +40,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
         private const string WindowTitle = "EOS Configuration";
         private List<IConfigEditor> platformSpecificConfigEditors;
 
+
         int toolbarInt;
         string[] toolbarTitleStrings;
 
@@ -48,6 +49,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Windows
 #if ALLOW_CREATION_OF_EOS_CONFIG_AS_C_FILE
         string eosGeneratedCFilePath = "";
 #endif
+
         bool prettyPrint;
 
         EOSSteamConfig steamEOSConfigFile;
@@ -374,17 +376,10 @@ _WIN32 || _WIN64
             }
         }
 
-        // TODO: create way to hook up new platforms dynamically 
-        private string[] CreateToolbarTitles()
-        {
-            return toolbarTitleStrings;
-        }
-
         protected override void RenderWindow()
         {
-            string[] toolbarTitlesToUse = CreateToolbarTitles();
             int xCount = (int)(EditorGUIUtility.currentViewWidth / 200);
-            toolbarInt = GUILayout.SelectionGrid(toolbarInt, toolbarTitlesToUse, xCount);
+            toolbarInt = GUILayout.SelectionGrid(toolbarInt, toolbarTitleStrings, xCount);
             switch (toolbarInt)
             {
                 case 0:
@@ -403,10 +398,10 @@ _WIN32 || _WIN64
             }
 
 #if ALLOW_CREATION_OF_EOS_CONFIG_AS_C_FILE
-        if (GUILayout.Button("Pick Path For Generated C File"))
-        {
-            eosGeneratedCFilePath = EditorUtility.OpenFolderPanel("Pick Path For Generated C File", "", "");
-        }
+            if (GUILayout.Button("Pick Path For Generated C File"))
+            {
+                eosGeneratedCFilePath = EditorUtility.OpenFolderPanel("Pick Path For Generated C File", "", "");
+            }
 #endif
             EditorGUILayout.Separator();
             GUILayout.Label("Config Format Options", EditorStyles.boldLabel);
