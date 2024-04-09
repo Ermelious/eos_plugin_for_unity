@@ -129,7 +129,7 @@ namespace PlayEveryWare.EpicOnlineServices.Build
                 bootstrapperName += ".exe";
             }
 
-            string pathToEOSBootStrapperTool = Path.Combine(FileUtility.GetProjectPath(), ProjectPathToEOSBootstrapperTool);
+            string pathToEOSBootStrapperTool = GetPathToBootstrapperTool();
 
             string installDirectory = Path.GetDirectoryName(report.summary.outputPath);
 
@@ -137,6 +137,30 @@ namespace PlayEveryWare.EpicOnlineServices.Build
 
             InstallBootStrapper(bootstrapperTarget, installDirectory, pathToEOSBootStrapperTool,
                 bootstrapperName);
+        }
+
+        private static string GetPathToBootstrapperTool()
+        {
+            string[] possiblePaths = new[]
+            {
+                Path.Combine(FileUtility.GetProjectPath(), ProjectPathToEOSBootstrapperTool),
+                Path.Combine("bin~", "EOSBootstrapperTool.exe")
+            };
+
+            string path = string.Empty;
+
+            foreach (string possiblePath in possiblePaths)
+            {
+                if (!File.Exists(possiblePath))
+                {
+                    continue;
+                }
+
+                path = possiblePath;
+                break;
+            }
+
+            return path;
         }
 
         private static void InstallBootStrapper(string appFilenameExe, string installDirectory,
