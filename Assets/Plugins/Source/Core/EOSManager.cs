@@ -561,12 +561,6 @@ namespace PlayEveryWare.EpicOnlineServices
             //-------------------------------------------------------------------------
             private EOSConfig LoadEOSConfigFileFromPath(string eosFinalConfigPath)
             {
-                if (!File.Exists(eosFinalConfigPath))
-                {
-                    throw new Exception("Couldn't find EOS Config file: Please ensure " + eosFinalConfigPath +
-                                        " exists and is a valid config");
-                }
-
                 string configDataAsString = FileUtility.ReadAllText(eosFinalConfigPath);
 
                 var configData = JsonUtility.FromJson<EOSConfig>(configDataAsString);
