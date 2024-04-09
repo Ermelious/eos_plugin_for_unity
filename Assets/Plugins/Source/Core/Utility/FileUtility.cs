@@ -115,7 +115,33 @@ namespace PlayEveryWare.EpicOnlineServices.Utility
         /// <returns>The contents of the file at the indicated path as a string.</returns>
         public static string ReadAllText(string path)
         {
-            return File.ReadAllText(path);
+            string text = string.Empty;
+#if UNITY_ANDROID
+            using var request = UnityEngine.Networking.UnityWebRequest.Get(path);
+            request.timeout = 2; //seconds till timeout
+            request.SendWebRequest();
+
+            //Wait till webRequest completed
+            while (!request.isDone) { }
+
+#if UNITY_2020_1_OR_NEWER
+            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Requesting " + path + ", please make sure it exists and is a valid config");
+                throw new Exception("UnityWebRequest didn't succeed, Result : " + request.result);
+            }
+#else
+            if (request.isNetworkError || request.isHttpError)
+            {
+                Debug.Log("Requesting " + path + ", please make sure it exists and is a valid config");
+                throw new Exception("UnityWebRequest didn't succeed : Network or HTTP Error");
+            }
+#endif
+            text = request.downloadHandler.text;
+#else
+            text = File.ReadAllText(path);
+#endif
+            return text;
         }
 
         /// <summary>
