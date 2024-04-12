@@ -24,6 +24,7 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Cryptography;
     using UnityEditor;
     using UnityEngine;
@@ -34,6 +35,26 @@ namespace PlayEveryWare.EpicOnlineServices.Editor.Utility
         {
             label ??= "";
             return tooltip == null ? new GUIContent(label) : new GUIContent(label, tooltip);
+        }
+
+        public static void RenderDropdown<T>(string label, IEnumerable<T> options, ref T selectedItem)
+        {
+            // Use the ToString method to convert to a string array, sorted alphabetically in ascending order
+            string[] optionsLabelText = options.Select(o => o.ToString()).OrderBy(s => s).ToArray();
+
+            T item = selectedItem;
+
+            var selectedIndex = optionsLabelText
+                .Select((s, i) => new {OptionLabelText = s, OptionIndex = i} )
+                .Where(arg => item.ToString() == arg.OptionLabelText)
+                .Select(arg => arg.OptionIndex)
+                .FirstOrDefault();
+
+            var selectedOptionIndex = EditorGUILayout.Popup(label, selectedIndex, optionsLabelText);
+
+            var selectedOptionLabelText = optionsLabelText[selectedOptionIndex];
+            
+            selectedItem = options.First(o => o.ToString() == selectedOptionLabelText);
         }
 
         /// <summary>
