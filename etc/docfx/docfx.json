@@ -3,28 +3,12 @@
     {
       "src": [
         {
-          "src": "../../Assets/Plugins/",
-          "files": [
-              "EOSConfig.cs"
-          ]
-        },
-        {
           "src": "../../Assets/Plugins/Source/",
-          "files": [
-              "*.cs"
-          ]
-        },
-        {
-          "src": "../../Assets/Plugins/Source/Editor/",
-          "files": [
-              "*.cs"
-          ]
+          "files": [ "**.cs" ]
         },
         {
           "src": "../../Assets/Scripts/",
-          "files": [
-              "*.cs"
-          ]
+          "files": [ "**.cs" ]
         }
       ],
       "dest": "api",
