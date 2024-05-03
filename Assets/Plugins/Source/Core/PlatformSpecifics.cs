@@ -36,10 +36,13 @@ namespace PlayEveryWare.EpicOnlineServices
 
         #region Methods for which the functionality is shared (consider these "sealed")
 
-        protected PlatformSpecifics(PlatformManager.Platform platform, string dynamicLibraryExtension)
+        protected PlatformSpecifics(
+            PlatformManager.Platform platform, 
+            Epic.OnlineServices.Auth.LoginCredentialType[] supportedCredentialTypes, 
+            string dynamicLibraryExtension)
         {
             this.Platform = platform;
-            PlatformManager.SetPlatformDetails(platform, typeof(T), dynamicLibraryExtension);
+            PlatformManager.SetPlatformDetails(platform, typeof(T), supportedCredentialTypes, dynamicLibraryExtension);
         }
 
         public string GetDynamicLibraryExtension()

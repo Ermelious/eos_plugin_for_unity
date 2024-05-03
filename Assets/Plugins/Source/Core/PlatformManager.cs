@@ -60,6 +60,7 @@ namespace PlayEveryWare.EpicOnlineServices
             public string ConfigFileName;
             public Type ConfigType;
             public string DynamicLibraryExtension;
+            public Epic.OnlineServices.Auth.LoginCredentialType[] SupportedLoginCredentialTypes;
         }
 
         /// <summary>
@@ -116,12 +117,13 @@ namespace PlayEveryWare.EpicOnlineServices
             AddPlatformInfo(Platform.Windows,     "Windows", "EpicOnlineServicesConfig.json"    );
         }
 
-        public static void SetPlatformDetails(Platform platform, Type configType, string dynamicLibraryExtension)
+        public static void SetPlatformDetails(Platform platform, Type configType, Epic.OnlineServices.Auth.LoginCredentialType[] supportedCredentialTypes, string dynamicLibraryExtension)
         {
             PlatformInfo info = PlatformInformation[platform];
             info.ConfigType = configType;
             info.DynamicLibraryExtension = dynamicLibraryExtension;
-
+            info.SupportedLoginCredentialTypes = supportedCredentialTypes;
+            
             PlatformInformation.Remove(platform);
             PlatformInformation.Add(new KeyValuePair<Platform, PlatformInfo>(platform, info));
         }
